@@ -5,8 +5,7 @@ import numpy as np
 
 def detect_barcode(image):
 
-# compute the Scharr gradient magnitude representation of the images 
-# in both the x and y direction 
+    # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
     gradX = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
     gradY = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
 
@@ -28,8 +27,7 @@ def detect_barcode(image):
 
     closed = cv2.dilate(closed, None, iterations = 4)
 
-    # find the contours in the thresholded image, then sort the contours
-    # by their area, keeping only the largest one
+    # find the contours in the thresholded image, then sort the contours by their area, keeping only the largest one
 
     (cnts, _) = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     c = sorted(cnts, key = cv2.contourArea, reverse = True)[0]
@@ -39,8 +37,7 @@ def detect_barcode(image):
     rect = cv2.minAreaRect(c)
     box = np.int32(cv2.boxPoints(rect))
 
-    # draw a bounding box arounded the detected barcode and display the
-    # image
+    # draw a bounding box arounded the detected barcode and display the image
 
     cv2.drawContours(image, [box], -1, (0, 255, 0), 3)
 
@@ -49,7 +46,18 @@ def detect_barcode(image):
     cv2.imshow('Gradient', gradient)
     cv2.imshow('Blurred', blurred)
     cv2.imshow('closed2', closed)
-    cv2.imshow("Image", img_dilation_2)
+    cv2.imshow("Image", image)
+
+    # box coordinates
+    x, y, w, h = cv2.boundingRect(box)
+
+    # Crop the barcode 
+    cropped_barcode = image[y:y+h, x:x+w]
+
+    cv2.imshow('Cropped Barcode', cropped_barcode)
+    cv2.waitKey(0)
+
+
 
 
 def sharpen_image(image):
@@ -76,7 +84,7 @@ def enhance_barcode(image):
 
 # Reading the input image
 img = cv2.imread(
-    "E:\\Computer_vision\\Project\\CV-Project\\Barcode.jpg", 0)
+    "Barcode.jpg", 0)
 
 # Taking a matrix of size 5 as the kernel
 kernel = np.array([[0, 1, 0],
@@ -100,11 +108,13 @@ img_dst_ero = enhance_barcode(img_erosion_2)
 img_dst_median = enhance_barcode(img_median)
 
 cv2.imshow('Input', img)
-cv2.imshow('Dilation', img_dilation_2)
-cv2.imshow('Erosion', img_erosion_2)
-cv2.imshow('Laplacian Dil', img_dst_dil)
-cv2.imshow('Laplacian Ero', img_dst_ero)
-cv2.imshow('Median', img_dst_median)
+# cv2.imshow('Dilation', img_dilation_2)
+# cv2.imshow('Erosion', img_erosion_2)
+# cv2.imshow('Laplacian Dil', img_dst_dil)
+# cv2.imshow('Laplacian Ero', img_dst_ero)
+# cv2.imshow('Median', img_dst_median)
+
+detect_barcode(img_erosion_2)
 
 cv2.waitKey(0)
 
