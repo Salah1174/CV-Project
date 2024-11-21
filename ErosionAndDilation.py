@@ -51,7 +51,7 @@ def detect_barcode(image):
     cv2.imshow('closed2', closed)
     cv2.imshow("Image", img_dilation_2)
 
-    
+
 def sharpen_image(image):
     # Define the sharpening kernel
     kernel = np.array([[-1, -1, -1],
@@ -99,32 +99,12 @@ img_dst_ero = enhance_barcode(img_erosion_2)
 
 img_dst_median = enhance_barcode(img_median)
 
-# cv2.imshow('Input', img)
-# cv2.imshow('Dilation', img_dilation_2)
-# cv2.imshow('Erosion', img_erosion_2)
-# cv2.imshow('Laplacian Dil', img_dst_dil)
-# cv2.imshow('Laplacian Ero', img_dst_ero)
-
-# cv2.imshow('Median', img_dst_median)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+cv2.imshow('Input', img)
+cv2.imshow('Dilation', img_dilation_2)
+cv2.imshow('Erosion', img_erosion_2)
+cv2.imshow('Laplacian Dil', img_dst_dil)
+cv2.imshow('Laplacian Ero', img_dst_ero)
+cv2.imshow('Median', img_dst_median)
 
 cv2.waitKey(0)
 
