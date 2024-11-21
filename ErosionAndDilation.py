@@ -28,7 +28,7 @@ def enhance_barcode(image):
 
 # Reading the input image
 img = cv2.imread(
-    "C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\CV-Project\\Barcode.jpg", 0)
+    "C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\CV-Project\\Barcode_Noise_3.jpg", 0)
 
 # Taking a matrix of size 5 as the kernel
 kernel = np.array([[0, 1, 0],
@@ -36,28 +36,56 @@ kernel = np.array([[0, 1, 0],
                    [0, 1, 0]],
                   np.uint8)
 
+vertical_kernel_3x3 = np.array([[1], [1], [1]], np.uint8)
+vertical_kernel_5x5 = np.array([[1], [1], [1], [1], [1], [1], [1]], np.uint8)
+
 img_dilation = cv2.dilate(img, kernel, iterations=1)
-img_erosion = cv2.erode(img_dilation, kernel, iterations=1)
-img_median = cv2.medianBlur(img_erosion, 3)
+img_erosion = cv2.erode(img_dilation, vertical_kernel_3x3, iterations=1)
 
 
-img_dilation_2 = cv2.dilate(img_median, kernel, iterations=1)
-img_erosion_2 = cv2.erode(img_dilation_2, kernel, iterations=1)
-img_median_2 = cv2.medianBlur(img_erosion_2, 3)
+bilateral_filt_closing = cv2.bilateralFilter(
+    img_erosion, d=9, sigmaColor=75, sigmaSpace=75)
 
-img_dst_dil = enhance_barcode(img_dilation_2)
 
-img_dst_ero = enhance_barcode(img_erosion_2)
+bilateral_filt_dil = cv2.bilateralFilter(
+    img_dilation, d=9, sigmaColor=75, sigmaSpace=75)
 
-img_dst_median = enhance_barcode(img_median)
+bilateral_filt_closing_ero = cv2.erode(
+    bilateral_filt_closing, vertical_kernel_3x3, iterations=1)
+
+bilateral_filt_dil_ero = cv2.erode(
+    bilateral_filt_dil, vertical_kernel_3x3, iterations=1)
+
+bilateral_filt_dil_ero_ero = cv2.erode(
+    bilateral_filt_dil, vertical_kernel_5x5, iterations=1)
+
+
+# img_median = cv2.medianBlur(img_erosion, 3)
+
+
+# img_dilation_2 = cv2.dilate(img_median, vertical_kernel, iterations=1)
+# img_erosion_2 = cv2.erode(img_dilation_2, vertical_kernel, iterations=1)
+# img_median_2 = cv2.medianBlur(img_erosion_2, 3)
+
+# img_dst_dil = enhance_barcode(img_dilation_2)
+
+# img_dst_ero = enhance_barcode(img_erosion_2)
+
+# img_dst_median = enhance_barcode(img_median)
 
 cv2.imshow('Input', img)
-cv2.imshow('Dilation', img_dilation_2)
-cv2.imshow('Erosion', img_erosion_2)
-cv2.imshow('Laplacian Dil', img_dst_dil)
-cv2.imshow('Laplacian Ero', img_dst_ero)
+# cv2.imshow('Dilation', img_dilation)
+# cv2.imshow('Erosion', img_erosion)
+# cv2.imshow('Bilateral Erosion', bilateral_filt_closing)  # Not Bad
+# cv2.imshow('Bilateral Dilation', bilateral_filt_dil)
+# cv2.imshow('Bilateral Closing Erosion', bilateral_filt_closing_ero)
+cv2.imshow('Bilateral Dilation Erosion', bilateral_filt_dil_ero)
+cv2.imshow('Bilateral Dilation Erosion Erosion', bilateral_filt_dil_ero_ero)
 
-cv2.imshow('Median', img_dst_median)
+
+# cv2.imshow('Laplacian Ero', img_dst_ero)
+
+# cv2.imshow('Median', img_dst_median)
 
 
 cv2.waitKey(0)
