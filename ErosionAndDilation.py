@@ -4,18 +4,36 @@ import cv2
 import numpy as np
 
 def detect_barcode(image):
+    
+    # 1---->canny
 
+    # blurred = cv2.GaussianBlur(image, (9, 9), 0)
+    # edges = cv2.Canny(image, 50, 150)  
+    # blurred = cv2.blur(edges, (9, 9))
+    # _, thresh = cv2.threshold(blurred, 50, 255, cv2.THRESH_BINARY)
+
+    #2---->blur before sobel
+
+    blurred = cv2.GaussianBlur(image, (5, 5),0)
     # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
-    gradX = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
-    gradY = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
+    gradX = cv2.Sobel(blurred, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
+    gradY = cv2.Sobel(blurred, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
+    
+    #3---->sobel bas
+
+    # # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
+    # gradX = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
+    # gradY = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
+
+    # 2, 3 only
 
     # subtract the y-gradient from the x-gradient
     gradient = cv2.subtract(gradX, gradY) 
     gradient = cv2.convertScaleAbs(gradient)
-
     # blur and threshold the image 
     blurred = cv2.blur(gradient, (9, 9))
     (_, thresh) = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
+
 
     # construct a closing kernel and apply it to the thresholded image
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
@@ -43,8 +61,8 @@ def detect_barcode(image):
 
 
 
-    cv2.imshow('Gradient', gradient)
-    cv2.imshow('Blurred', blurred)
+    # cv2.imshow('Gradient', gradient)
+    # cv2.imshow('Blurred', blurred)
     cv2.imshow('closed2', closed)
     cv2.imshow("Image", image)
 
@@ -84,7 +102,16 @@ def enhance_barcode(image):
 
 # Reading the input image
 img = cv2.imread(
-    "Barcode.jpg", 0)
+    # "Test Cases\\01 - lol easy.jpg", 0)
+    # "Barcode.jpg", 0)
+    # "Test Cases\\02 - still easy.jpg", 0)
+    # "Test Cases\\04 - fen el nadara.jpg", 0)
+    # "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)
+    "Test Cases\\07 - mal7 w felfel.jpg", 0)
+    # "Test Cases\\08 - compresso espresso.jpg", 0)
+
+if img is None:
+    raise ValueError("Image not found.")
 
 # Taking a matrix of size 5 as the kernel
 kernel = np.array([[0, 1, 0],
