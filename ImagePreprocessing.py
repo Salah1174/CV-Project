@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 img = cv.imread(
     "C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\CV-Project\\Barcode.jpg", cv.IMREAD_GRAYSCALE)
 
-imgFilter_Median = cv.medianBlur(img, 5)
+imgFilter_Median = cv.medianBlur(img,3 )
 
 
 # imgFilter_Gaussian = cv.GaussianBlur(img, (5, 5), cv.BORDER_DEFAULT)
@@ -28,5 +28,5 @@ imgFilter_Median = cv.medianBlur(img, 5)
 # imgFilter = apply_median_filter(img_arr)
 
 # plt.subplot(121), plt.imshow(img, cmap='gray')
-plt.imshow(imgFilter_Gaussian, cmap='gray')
+plt.imshow(imgFilter_Median, cmap='gray')
 plt.show()

@@ -44,7 +44,7 @@ def add_noise(img):
 # be applied only to grayscale images
 # Reading the color image in grayscale image
 img = cv2.imread(
-    "C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\CV-Project\\Barcode_Modified.jpg", cv2.IMREAD_GRAYSCALE)
+    "C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\CV-Project\\Barcode_3.jpg", cv2.IMREAD_GRAYSCALE)
 
 # Storing the image
-cv2.imwrite('Barcode_Noise.jpg', add_noise(img))
+cv2.imwrite('Barcode_Noise_3.jpg', add_noise(img))
