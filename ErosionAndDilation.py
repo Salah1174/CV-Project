@@ -3,6 +3,19 @@
 import cv2
 import numpy as np
 
+# This function reorder the corners points appropriatly 
+# Helped significantly with warp function
+def reorder(myPoints):
+    myPoints = myPoints.reshape((4, 2))
+    myPointsNew = np.zeros((4, 1, 2), dtype=np.int32)
+    add = myPoints.sum(1)
+    myPointsNew[1] = myPoints[np.argmin(add)]
+    myPointsNew[3] =myPoints[np.argmax(add)]
+    diff = np.diff(myPoints, axis=1)
+    myPointsNew[0] =myPoints[np.argmin(diff)]
+    myPointsNew[2] = myPoints[np.argmax(diff)]
+    return myPointsNew
+
 def detect_barcode(image):
     
     # 1---->canny
@@ -45,34 +58,59 @@ def detect_barcode(image):
 
     closed = cv2.dilate(closed, None, iterations = 4)
 
-    # find the contours in the thresholded image, then sort the contours by their area, keeping only the largest one
-
+    # find the contours in the thresholded image,
+    #  then sort the contours by their area,
+    #  keeping only the largest one
     (cnts, _) = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    c = sorted(cnts, key = cv2.contourArea, reverse = True)[0]
+    cnt = sorted(cnts, key = cv2.contourArea, reverse = True)[0] 
+    if cv2.contourArea(cnt) > 0:  # Check if contour is valid
 
-    # compute the rotated bounding box of the largest contour
+        # compute the rotated bounding box of the largest contour
+        rect = cv2.minAreaRect(cnt)
+        box = np.int32(cv2.boxPoints(rect))
+        
+        # box coordinates
+        x, y, w, h = cv2.boundingRect(box) 
+        box = reorder(box)
+        # print(box)
 
-    rect = cv2.minAreaRect(c)
-    box = np.int32(cv2.boxPoints(rect))
+        # Crop the barcode 
+        cropped_barcode = image[y:y+h, x:x+w] #Salma Hisham
 
-    # draw a bounding box arounded the detected barcode and display the image
+        # Coordinates of each corner
+        ax = box.item(0)
+        ay = box.item(1)
 
-    cv2.drawContours(image, [box], -1, (0, 255, 0), 3)
+        bx = box.item(2)
+        by = box.item(3)
+
+        cx = box.item(4)
+        cy = box.item(5)
+
+        dx = box.item(6)
+        dy = box.item(7)
+        
+        pts1 = np.float32([[bx, by], [ax, ay], [cx, cy], [dx, dy]])
+        pts2 = np.float32([[0, 0], [w, 0], [0, h], [w, h]])
+
+        matrix = cv2.getPerspectiveTransform(pts1, pts2)
+        img_prespective = cv2.warpPerspective(image, matrix, (w, h))
+        # cv2.circle(image, (ax,ay), 5, (0,0,255), 20)
+        # cv2.circle(image, (bx,by), 1, (0,0,255), 10)
+        # cv2.circle(image, (cx,cy), 1, (0,0,255), 10)
+        # cv2.circle(image, (dx,dy), 1, (0,0,255), 10)
+
+        # draw a bounding box arounded the detected barcode and display the image
+        cv2.drawContours(image, [box], -1, (0, 255, 0), 3) 
 
 
 
-    # cv2.imshow('Gradient', gradient)
-    # cv2.imshow('Blurred', blurred)
-    cv2.imshow('closed2', closed)
-    cv2.imshow("Image", image)
-
-    # box coordinates
-    x, y, w, h = cv2.boundingRect(box)
-
-    # Crop the barcode 
-    cropped_barcode = image[y:y+h, x:x+w]
-
-    cv2.imshow('Cropped Barcode', cropped_barcode)
+        # cv2.imshow('Gradient', gradient)
+        # cv2.imshow('Blurred', blurred)
+        cv2.imshow('closed2', closed) #Salma Hisham
+        cv2.imshow("Image", image) #salma hisham
+        cv2.imshow('Cropped Barcode', cropped_barcode) #Salma Hisham
+        cv2.imshow("Warp", img_prespective)
     cv2.waitKey(0)
 
 
@@ -103,13 +141,20 @@ def enhance_barcode(image):
 # Reading the input image
 img = cv2.imread(
     # "Test Cases\\01 - lol easy.jpg", 0)
-    "Barcode.jpg", 0)
+    # "Barcode.jpg", 0)
     # "Test Cases\\02 - still easy.jpg", 0)
+    # "Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg", 0)
     # "Test Cases\\04 - fen el nadara.jpg", 0)
-    # "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)
+    # "Test Cases\\05 - meen taffa el nour!!!.jpg", 0)
+    # "Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg", 0)
     # "Test Cases\\07 - mal7 w felfel.jpg", 0)
     # "Test Cases\\08 - compresso espresso.jpg", 0)
+    # "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)
+    # "Test Cases\\10 - wen el kontraastttt.jpg", 0)
+    "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
     # "Barcode_Noise_3.jpg", 0)
+
+
 
 if img is None:
     raise ValueError("Image not found.")
