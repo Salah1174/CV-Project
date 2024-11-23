@@ -17,30 +17,57 @@ def reorder(myPoints):    #salma yousef
     return myPointsNew
 
 def make_columns_uniform(image):
-    # Get the dimensions of the image
     height, width = image.shape
+    num_parts = 6
+    part_height = height // num_parts
     
-    # Iterate through each column
     for x in range(width):
-        # Get the pixels in the current column
-        column_pixels = image[:, x]
-        cnt = [0,0]
-        # Find the most common pixel value in the column
-        unique, counts = np.unique(column_pixels, return_counts=True)
-        mode_pixel = unique[np.argmax(counts)]
+        part_most_common = []
 
-        for idx, item in enumerate(unique):
-            if(item >= 128):
-                unique[idx] = 255
-                cnt[0]+=1
-            else:
-                unique[idx] = 0
-                cnt[1]+=1
+        for part in range(num_parts):
+            start_idx = part * part_height
+            end_idx = (part + 1) * part_height if part != num_parts - 1 else height
+            part_pixels = image[start_idx:end_idx, x]
 
-        print(unique)
-        print(unique[np.argmax(counts)])
+            # Find  most common pixel value in the part
+            unique, counts = np.unique(part_pixels, return_counts=True)
+            
+            for idx, item in enumerate(unique):
+                if item >= 128:
+                    unique[idx] = 255
+                else:
+                    unique[idx] = 0
+            
+            mode_pixel = unique[np.argmax(counts)]
+            part_most_common.append(mode_pixel)
+        
+        # Determine the most common value among the parts
+        final_unique, final_counts = np.unique(part_most_common, return_counts=True)
+        most_common_pixel = final_unique[np.argmax(final_counts)]
+
         # Set all pixels in the column to the most common value
-        image[:, x] = 0 if cnt[1] > cnt[0] else 255
+        image[:, x] = most_common_pixel
+        
+            
+        # # Get the pixels in the current column
+        # column_pixels = image[:, x]
+        # cnt = [0,0]
+        # # Find the most common pixel value in the column
+        # unique, counts = np.unique(column_pixels, return_counts=True)
+        # # mode_pixel = unique[np.argmax(counts)]
+
+        # for idx, item in enumerate(unique):
+        #     if(item >= 128):
+        #         unique[idx] = 255
+        #         cnt[0]+=1
+        #     else:
+        #         unique[idx] = 0
+        #         cnt[1]+=1
+
+        # print(unique)
+        # print(unique[np.argmax(counts)])
+        # # Set all pixels in the column to the most common value
+        # image[:, x] = 0 if cnt[1] > cnt[0] else 255
     
 
     return image
@@ -169,8 +196,8 @@ def detect_barcode(image):   #salma yousef
         cv2.imshow('Cropped Barcode', cropped_barcode) #Salma Hisham
         cv2.imshow("Warp", img_prespective) #salma yousef
 
-        # uniform_image = make_columns_uniform(img_prespective)
-        # cv2.imshow("Uniform Image", uniform_image)
+        uniform_image = make_columns_uniform(img_prespective)
+        cv2.imshow("Uniform Image", uniform_image)
         
     cv2.waitKey(0)
 
@@ -204,13 +231,13 @@ img = cv2.imread(
     # "Test Cases\\01 - lol easy.jpg", 0)
     # "Barcode.jpg", 0)
     # "Test Cases\\02 - still easy.jpg", 0)
-    # "Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg", 0)
+    "Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg", 0)
     # "Test Cases\\04 - fen el nadara.jpg", 0)
     # "Test Cases\\05 - meen taffa el nour!!!.jpg", 0)
     # "Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg", 0)
     # "Test Cases\\07 - mal7 w felfel.jpg", 0)
     # "Test Cases\\08 - compresso espresso.jpg", 0)
-    "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)
+    # "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)
     # "Test Cases\\10 - wen el kontraastttt.jpg", 0)
     # "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
     # "Barcode_Noise_3.jpg", 0)
