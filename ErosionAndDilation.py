@@ -186,7 +186,7 @@ def noiseReductionSaltAndPeper(image_path):
     # cv2.imshow('Bilateral Dilation', bilateral_filt_dil)
     # cv2.imshow('Bilateral Closing Erosion', bilateral_filt_closing_ero)
     # cv2.imshow("Bilateral Dilation Erosion", bilateral_filt_dil_ero)
-    # cv2.imshow("Bilateral Dilation Erosion Erosion", bilateral_filt_dil_ero_ero)
+    cv2.imshow("Bilateral Dilation Erosion Erosion", bilateral_filt_dil_ero_ero)
 
     # cv2.imshow('Laplacian Ero', img_dst_ero)
 
@@ -223,7 +223,7 @@ def noiseReductionFrequencyDomain(img):
     # Filter: Low pass filter
     M, N = img.shape
     H = np.zeros((M, N), dtype=np.float32)
-    D0 = 50
+    D0 = 25
     for u in range(M):
         for v in range(N):
             D = np.sqrt((u - M/2)**2 + (v - N/2)**2)
@@ -252,8 +252,29 @@ def noiseReductionFrequencyDomain(img):
     cv2.imshow("High-Pass Filtered Image", g_high_pass.astype(np.uint8))
 
     # Inverse the High-Pass Filtered Image
-    g_inverse = 255 - g_high_pass
+    g_inverse = 256 - g_high_pass
+
+    # for pixel in range(g_inverse.shape[0]):
+    #     for pixel2 in range(g_inverse.shape[1]):
+    #         if g_inverse[pixel][pixel2] >= 255 :
+    #             g_inverse[pixel][pixel2] = 0
+
     cv2.imshow("Inverted High-Pass Image", g_inverse.astype(np.uint8))
+    
+    histogram = cv2.calcHist([g_inverse.astype(np.uint8)], [
+        0], None, [256], [0, 256])
+
+    for intensity, frequency in enumerate(histogram):
+        print(f"Intensity: {intensity}, Frequency: {int(frequency)}")
+
+    # Plot the histogram
+    plt.figure()
+    plt.title("Grayscale Histogram")
+    plt.xlabel("Pixel Intensity")
+    plt.ylabel("Frequency")
+    plt.plot(histogram)
+    plt.xlim([0, 256])
+    plt.show()
 
     # Wait for a key press to close windows
     cv2.waitKey(0)
@@ -261,12 +282,12 @@ def noiseReductionFrequencyDomain(img):
     return g_inverse
 
 
-img = "Test Cases\\01 - lol easy.jpg"
+img = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
 
 
 noisereducedimg = noiseReductionSaltAndPeper(img)
 Wrappedimg = detect_barcode(noisereducedimg)
-# noiseReductionFrequencyDomain(Wrappedimg)
+noiseReductionFrequencyDomain(Wrappedimg)
 
 
 # Reading the input image
@@ -344,6 +365,3 @@ Wrappedimg = detect_barcode(noisereducedimg)
 
 #     # Display all images.
 #     plt.show()
-
-
-
