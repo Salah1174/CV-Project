@@ -3,111 +3,163 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
-def noiseReductionFrequencyDomain(img):
-    # Original image
-    f = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
+def noiseReductionFrequencyDomain(img_path):
+    # Load original image
+    f = cv2.imread(img_path, 0)
     cv2.imshow("Original Image", f)
 
     # Image in frequency domain
     F = np.fft.fft2(f)
     Fshift = np.fft.fftshift(F)
 
-    # Filter: Low pass filter
+    # Create Low-Pass Filter
     M, N = f.shape
-    H = np.zeros((M, N), dtype=np.float32)
-    D0 = 50
+    H_low = np.zeros((M, N), dtype=np.float32)
+    D0 = 50  # Cutoff frequency
     for u in range(M):
         for v in range(N):
-            D = np.sqrt((u - M/2)**2 + (v - N/2)**2)
-            if D <= D0:
-                H[u, v] = 1
-            else:
-                H[u, v] = 0
+            D = np.sqrt((u - M / 2) ** 2 + (v - N / 2) ** 2)
+            H_low[u, v] = 1 if D <= D0 else 0
 
-    # Ideal Low Pass Filtering
-    Gshift = Fshift * H
-    G = np.fft.ifftshift(Gshift)
-    g_low_pass = np.abs(np.fft.ifft2(G))
+    # Apply Low-Pass Filter
+    Gshift_low = Fshift * H_low
+    G_low = np.fft.ifftshift(Gshift_low)
+    g_low_pass = np.abs(np.fft.ifft2(G_low))
+    cv2.imshow("Low-Pass Filtered Image", g_low_pass.astype(np.uint8))
 
-    # Display Low-Pass Filtered Image
-    # cv2.imshow("Low-Pass Filtered Image", g_low_pass.astype(np.uint8))
+    # Create High-Pass Filter
+    H_high = 1 - H_low
 
-    # Filter: High pass filter
-    H = 1 - H
-
-    # Ideal High Pass Filtering
-    Gshift = Fshift * H
-    G = np.fft.ifftshift(Gshift)
-    g_high_pass = np.abs(np.fft.ifft2(G))
-
-    # Display High-Pass Filtered Image
+    # Apply High-Pass Filter
+    Gshift_high = Fshift * H_high
+    G_high = np.fft.ifftshift(Gshift_high)
+    g_high_pass = np.abs(np.fft.ifft2(G_high))
     cv2.imshow("High-Pass Filtered Image", g_high_pass.astype(np.uint8))
 
-    # Inverse the High-Pass Filtered Image
+    # Invert the High-Pass Filtered Image
     g_inverse = 256 - g_high_pass
-
-    # for pixel in range(g_inverse.shape[0]):
-    #     for pixel2 in range(g_inverse.shape[1]):
-    #         if g_inverse[pixel][pixel2] >= 251 :
-    #             g_inverse[pixel][pixel2] = 0
-
     cv2.imshow("Inverted High-Pass Image", g_inverse.astype(np.uint8))
 
+    # Apply Various Filters for Noise Reduction and Clarity
+    # 1. Gaussian Blur
+    gaussian_filtered = cv2.GaussianBlur(g_inverse, (15, 15), 0)
+    cv2.imshow("Gaussian Blurred Image", gaussian_filtered)
 
+    # 2. Bilateral Filter
+    bilateral_filtered = cv2.bilateralFilter(
+        g_inverse.astype(np.uint8), 9, 75, 75)
+    cv2.imshow("Bilateral Filtered Image", bilateral_filtered)
 
-    # low_freq_component = cv2.GaussianBlur(g_high_pass, (15, 15), 0)
-    # reconstructed_image = g_high_pass + low_freq_component
-    # reconstructed_image = np.clip(reconstructed_image, 0, 255).astype(np.uint8)
-    # _, barcode_image = cv2.threshold(
-    # reconstructed_image, 128, 255, cv2.THRESH_BINARY)
+    # 3. Edge Preserving Filter
+    edge_preserving_filtered = cv2.edgePreservingFilter(
+        g_inverse.astype(np.uint8), flags=1, sigma_s=60, sigma_r=0.4)
+    cv2.imshow("Edge Preserving Filtered Image", edge_preserving_filtered)
 
-    # alpha = 2.5
-    # beta = 0
-    # reconstructed_image = cv2.convertScaleAbs(reconstructed_image, alpha=alpha, beta=beta)
-    # reconstructed_image = cv2.bitwise_not(reconstructed_image)
-    # # reconstructed_image = cv2.medianBlur(reconstructed_image, 3)
-    # # reconstructed_image = cv2.bitwise_not(reconstructed_image)
+    # Combine Filters (e.g., Gaussian + Edge Preserving)
+    combined_filtered = cv2.addWeighted(
+        gaussian_filtered.astype(np.uint8), 0.6,
+        edge_preserving_filtered.astype(np.uint8), 0.4, 0)
+    cv2.imshow("Combined Filtered Image", combined_filtered)
 
-    # cv2.imshow("Reconstructed Image", reconstructed_image)  
-
-    histogram = cv2.calcHist([g_inverse.astype(np.uint8)], [
-                             0], None, [256], [0, 256])
-
-    for intensity, frequency in enumerate(histogram):
-        print(f"Intensity: {intensity}, Frequency: {int(frequency)}")
-    
-
-    domainFilter = cv2.edgePreservingFilter(g_inverse, flags=1, sigma_s=60, sigma_r=0.6)
-    cv2.imshow("Domain Filter", domainFilter)
-
-    # Plot the histogram
+    # Plot histogram of the final processed image
+    histogram = cv2.calcHist([combined_filtered], [0], None, [256], [0, 256])
     plt.figure()
-    plt.title("Grayscale Histogram")
+    plt.title("Histogram of Processed Image")
     plt.xlabel("Pixel Intensity")
     plt.ylabel("Frequency")
     plt.plot(histogram)
     plt.xlim([0, 256])
     plt.show()
 
-    # histogram1 = cv2.calcHist([g_high_pass.astype(np.uint8)], [
-    #                          0], None, [256], [0, 256])
+    # Save the processed image if needed
+    cv2.imwrite("Processed_Image.jpg", combined_filtered)
 
-    # # for intensity, frequency in enumerate(histogram1):
-    # #     print(f"Intensity: {intensity}, Frequency: {int(frequency)}")
-    # # Plot the histogram
-    # plt.figure()
-    # plt.title("Grayscale Histogram")
-    # plt.xlabel("Pixel Intensity")
-    # plt.ylabel("Frequency")
-    # plt.plot(histogram1)
-    # plt.xlim([0, 256])
-    # plt.show()
+    # Wait for user to close windows
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+# Call the function with an example image path
+# noiseReductionFrequencyDomain("Test Cases\\11 - bayza 5ales di bsara7a.jpg")
+def apply_notch_filter(Fshift, M, N, D0=50):
+    """
+    Applies a notch filter to remove periodic noise from the frequency domain.
+    D0 is the radius of the notch filter in frequency space.
+    """
+    # Create the notch filter mask
+    H = np.ones((M, N), dtype=np.float32)
+    for u in range(M):
+        for v in range(N):
+            D = np.sqrt((u - M / 2) ** 2 + (v - N / 2) ** 2)
+            if D <= D0:
+                H[u, v] = 0  # Remove the low frequencies around the center
+    return Fshift * H
 
+
+def noise_reduction_barcode(img_path):
+    # Load the image
+    img = cv2.imread(img_path, 0)
+    cv2.imshow("Original Image", img)
+
+    # Fourier Transform
+    F = np.fft.fft2(img)
+    Fshift = np.fft.fftshift(F)
+    M, N = img.shape
+
+    # Step 1: Apply Notch Filter to remove periodic noise
+    Fshift_no_noise = apply_notch_filter(Fshift, M, N, D0=50)
+
+    # Step 2: Apply High Pass Filter to emphasize edges
+    H_high = np.ones((M, N), dtype=np.float32)
+    D0 = 30  # High-pass filter radius
+    for u in range(M):
+        for v in range(N):
+            D = np.sqrt((u - M / 2) ** 2 + (v - N / 2) ** 2)
+            if D <= D0:
+                # Zero out low frequencies (remove smooth areas)
+                H_high[u, v] = 0
+
+    Fshift_high = Fshift_no_noise * H_high
+    G_high = np.fft.ifftshift(Fshift_high)
+    high_pass_image = np.abs(np.fft.ifft2(G_high))
+
+    # Step 3: Apply Low Pass Filter to restore the smooth parts of the barcode (inner fillings)
+    H_low = 1 - H_high  # Low-pass filter is the complement of the high-pass filter
+    Fshift_low = Fshift_no_noise * H_low
+    G_low = np.fft.ifftshift(Fshift_low)
+    low_pass_image = np.abs(np.fft.ifft2(G_low))
+
+    # Step 4: Combine high-pass and low-pass components to reconstruct the image
+    alpha = 0.7
+    beta = 0.3
+    reconstructed_image = np.clip(
+        alpha * high_pass_image + beta * low_pass_image, 0, 255).astype(np.uint8)
+
+    # Step 5: Morphological operations to fill the barcode inner gaps
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    morph_image = cv2.morphologyEx(
+        reconstructed_image, cv2.MORPH_CLOSE, kernel)
+
+    # Step 6: Thresholding to emphasize barcode lines
+    _, threshold_image = cv2.threshold(
+        morph_image, 128, 255, cv2.THRESH_BINARY)
+
+    # Display results
+    cv2.imshow("High-Pass Filtered Image", high_pass_image.astype(np.uint8))
+    cv2.imshow("Low-Pass Filtered Image", low_pass_image.astype(np.uint8))
+    cv2.imshow("Reconstructed Image", reconstructed_image)
+    cv2.imshow("Morphologically Processed Image", morph_image)
+    cv2.imshow("Thresholded Image", threshold_image)
 
     # Wait for a key press to close windows
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+
+# Path to the barcode image
+img_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
+
+# Run the noise reduction and barcode enhancement process
+# noise_reduction_barcode(img_path)
+
 
 
 def give_me_circle_mask_nowww(mask_size, radius):
@@ -146,9 +198,81 @@ def plot_shifted_fft_and_ifft(dft_img_shifted):
             xticklabels=[-img.shape[1]//2, 0, img.shape[1]//2 - 1])
     ax1.imshow(np.abs(dft_img_shifted)**0.1, cmap='gray')
     ax2.imshow(np.abs(img), cmap='gray')
+    plt.show()
+
+
+def noiseReductionFrequencyDomain2(image_path, cutoff_scale=1.0):
+    
+    img = cv2.imread(image_path, 0)
+    cv2.imshow("Original Image", img)
+
+    # Image in frequency domain
+    F = np.fft.fft2(img)
+    Fshift = np.fft.fftshift(F)
+
+    # Filter: Low pass filter
+    M, N = img.shape
+    H = np.zeros((M, N), dtype=np.float32)
+    D0 = 25 * cutoff_scale  # Scale the cutoff frequency
+    for u in range(M):
+        for v in range(N):
+            D = np.sqrt((u - M/2)**2 + (v - N/2)**2)
+            H[u, v] = 1 if D <= D0 else 0
+
+    # Apply Low-Pass Filter
+    Gshift = Fshift * H
+    G = np.fft.ifftshift(Gshift)
+    g_low_pass = np.abs(np.fft.ifft2(G))
+    cv2.imshow("Low-Pass Filtered Image", g_low_pass.astype(np.uint8))
+
+    # Filter: High pass filter
+    H = 1 - H
+
+    # Apply High-Pass Filter
+    Gshift = Fshift * H
+    G = np.fft.ifftshift(Gshift)
+    g_high_pass = np.abs(np.fft.ifft2(G))
+    cv2.imshow("High-Pass Filtered Image", g_high_pass.astype(np.uint8))
+
+    # Inverse the High-Pass Filtered Image
+    g_inverse = 256 - g_high_pass
+    cv2.imshow("Inverted High-Pass Image", g_inverse.astype(np.uint8))
+    cv2.imwrite("Inverted_High_Pass.jpg", g_inverse.astype(np.uint8))
+
+    # Wait for a key press to close windows
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    g_high_pass = g_high_pass.astype(np.uint8)
+    return g_high_pass
+
+
+def update_filter(scale):
+    cutoff_scale = scale / 25  # Normalize scale
+    filtered_image = noiseReductionFrequencyDomain2(
+        "Test Cases\\11 - bayza 5ales di bsara7a.jpg", cutoff_scale)
+    cv2.imshow("Filtered Image", filtered_image)
+
+img = cv2.imread("Warp.jpg")
+cv2.imshow("Original Image", img)
+img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+dft_img = np.fft.fft2(img_gray)
+dft_img_shift = np.fft.fftshift(dft_img)
+# plt.imshow(np.log(np.abs(dft_img_shift)), cmap='gray')
+# plt.show()
+
+try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
+
+# cv2.namedWindow("Filtered Image")
+# cv2.createTrackbar("Cutoff Scale", "Filtered Image", 1, 100, update_filter)
+
+# img = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
+# update_filter(10)  # Initial filter
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
 
 
+# noiseReductionFrequencyDomain2("C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\TestCases\\11 - bayza 5ales di bsara7a.jpg", 1.0)
 
 # # Load the image in grayscale
 # image_path = "C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\TestCases\\11 - bayza 5ales di bsara7a.jpg"
@@ -206,7 +330,7 @@ def plot_shifted_fft_and_ifft(dft_img_shifted):
 
 
 
-noiseReductionFrequencyDomain(cv2.imread("C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\TestCases\\12 - bayza 5ales di bsara7a#3.jpg", 0))
+# noiseReductionFrequencyDomain(cv2.imread("C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\TestCases\\12 - bayza 5ales di bsara7a#3.jpg", 0))
 
 
 # original image

@@ -111,6 +111,7 @@ def detect_barcode(image):
         cv2.imshow("Image", image)  # salma hisham
         # cv2.imshow("Cropped Barcode", cropped_barcode)  # Salma Hisham
         cv2.imshow("Warp", img_prespective)
+        cv2.imwrite("Warp.jpg", img_prespective) 
     cv2.waitKey(0)
     return img_prespective
 
@@ -186,14 +187,13 @@ def noiseReductionSaltAndPeper(image_path):
     # cv2.imshow('Bilateral Dilation', bilateral_filt_dil)
     # cv2.imshow('Bilateral Closing Erosion', bilateral_filt_closing_ero)
     # cv2.imshow("Bilateral Dilation Erosion", bilateral_filt_dil_ero)
-    cv2.imshow("Bilateral Dilation Erosion Erosion", bilateral_filt_dil_ero_ero)
+    # cv2.imshow("Bilateral Dilation Erosion Erosion", bilateral_filt_dil_ero_ero)
 
     # cv2.imshow('Laplacian Ero', img_dst_ero)
 
     # cv2.imshow('Median', img_dst_median)
 
     cv2.waitKey(0)
-
 
     return bilateral_filt_dil_ero_ero
 
@@ -250,7 +250,7 @@ def noiseReductionFrequencyDomain(img):
 
     # Display High-Pass Filtered Image
     cv2.imshow("High-Pass Filtered Image", g_high_pass.astype(np.uint8))
-
+    cv2.imwrite("High_Pass.jpg", g_high_pass.astype(np.uint8))
     # Inverse the High-Pass Filtered Image
     g_inverse = 256 - g_high_pass
 
@@ -260,12 +260,12 @@ def noiseReductionFrequencyDomain(img):
     #             g_inverse[pixel][pixel2] = 0
 
     cv2.imshow("Inverted High-Pass Image", g_inverse.astype(np.uint8))
-    
+    cv2.imwrite("Inverted_High_Pass.jpg", g_inverse.astype(np.uint8))
     histogram = cv2.calcHist([g_inverse.astype(np.uint8)], [
         0], None, [256], [0, 256])
 
-    for intensity, frequency in enumerate(histogram):
-        print(f"Intensity: {intensity}, Frequency: {int(frequency)}")
+    # for intensity, frequency in enumerate(histogram):
+        # print(f"Intensity: {intensity}, Frequency: {int(frequency)}")
 
     # Plot the histogram
     plt.figure()
@@ -279,7 +279,70 @@ def noiseReductionFrequencyDomain(img):
     # Wait for a key press to close windows
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    return g_inverse
+    g_high_pass = g_high_pass.astype(np.uint8)
+    return g_high_pass
+
+
+def RegionFilling(img):
+    # Threshold.
+    # Set values equal to or above 220 to 0.
+    # Set values below 220 to 255.
+
+    th, im_th = cv2.threshold(img, 255, 255, cv2.THRESH_BINARY_INV)
+
+    # Copy the thresholded image.
+    im_floodfill = im_th.copy()
+
+    # Mask used to flood filling.
+    # Notice the size needs to be 2 pixels than the image.
+    h, w = im_th.shape[:2]
+    mask = np.zeros((h+2, w+2), np.uint8)
+
+    # Floodfill from point (0, 0)
+    cv2.floodFill(im_floodfill, mask, (0, 0), 255)
+
+    # Invert floodfilled image
+    im_floodfill_inv = cv2.bitwise_not(im_floodfill)
+
+    # Combine the two images to get the foreground.
+    im_out = im_th | im_floodfill_inv
+
+    # Display images.
+    cv2.imshow("Thresholded Image", im_th)
+    cv2.imshow("Floodfilled Image", im_floodfill)
+    cv2.imshow("Inverted Floodfilled Image", im_floodfill_inv)
+    cv2.imshow("Foreground", im_out)
+    cv2.waitKey(0)
+
+
+def AdaptiveGaussian(img1):
+
+    # path to input image is specified and
+    # image is loaded with imread command
+    # image1 = cv2.imread(image_path)
+
+    # cv2.cvtColor is applied over the
+    # image input with applied parameters
+    # to convert the image in grayscale
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # applying different thresholding
+    # techniques on the input image
+    # thresh1 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+    #                                 cv2.THRESH_BINARY, 199, 5)
+
+    thresh2 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                    cv2.THRESH_BINARY, 199, 5)
+
+    # the window showing output images
+    # with the corresponding thresholding
+    # techniques applied to the input image
+    # cv2.imshow('Adaptive Mean', thresh1)
+    cv2.imshow('Adaptive Gaussian', thresh2)
+
+    # De-allocate any associated memory usage
+    if cv2.waitKey(0) & 0xff == 27:
+    	cv2.destroyAllWindows()
 
 
 img = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
@@ -287,7 +350,8 @@ img = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
 
 noisereducedimg = noiseReductionSaltAndPeper(img)
 Wrappedimg = detect_barcode(noisereducedimg)
-noiseReductionFrequencyDomain(Wrappedimg)
+highpassimg = noiseReductionFrequencyDomain(Wrappedimg)
+AdaptiveGaussian(highpassimg)
 
 
 # Reading the input image
