@@ -10,7 +10,7 @@ Original file is located at
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from google.colab.patches import cv2_imshow
+# from google.colab.patches import cv2.imshow
 
 
 # Load test images
@@ -29,7 +29,7 @@ test_image11 = cv2.imread("/content/10 - wen el kontraastttt.jpg", cv2.IMREAD_GR
 test_image12 = cv2.imread("/content/11 - bayza 5ales di bsara7a.jpg", cv2.IMREAD_GRAYSCALE) #freq domain
 
 _, thresholded_image_tst1 = cv2.threshold(test_image1, 100, 255, cv2.THRESH_BINARY)
-cv2_imshow(thresholded_image_tst1)
+cv2.imshow(thresholded_image_tst1)
 
 hist = cv2.calcHist([thresholded_image_tst1], [0], None, [256], [0, 256])
 plt.plot(hist)
@@ -38,7 +38,7 @@ plt.show()
 
 
 _, thresholded_image_tst2 = cv2.threshold(test_image2, 100, 255, cv2.THRESH_BINARY)
-cv2_imshow(thresholded_image_tst2)
+cv2.imshow(thresholded_image_tst2)
 
 hist = cv2.calcHist([thresholded_image_tst2], [0], None, [256], [0, 256])
 plt.plot(hist)
@@ -87,7 +87,7 @@ print("AHHH")
 
 for i, test_image in valid_images:
     print(f"Image {i}:") #just double checking it's working
-    #cv2_imshow(test_image) #works right
+    #cv2.imshow(test_image) #works right
 
 # notice that, only images that are on the darker side were picked to have "salt
 # & ppr" noise, emphasizing the fact that the barcode is most definitely not
@@ -101,11 +101,11 @@ plt.plot(hist)
 plt.title("Histogram")
 plt.show()
 
-cv2_imshow( test_image6)
+cv2.imshow( test_image6)
 _, thresholded_image = cv2.threshold(test_image6, 8, 255, cv2.THRESH_BINARY) #if val was 100, it says yes
 
 # Show the result
-cv2_imshow( thresholded_image)
+cv2.imshow( thresholded_image)
 if detect_salt_and_pepper_noise(thresholded_image):
     print("Yes")  # Salt and pepper noise detected
 else:
@@ -117,12 +117,12 @@ print(f"Average Intensity: {average_intensity}")
 #avg intensity is 13, our focus from the image is the barcode, which is the darkest feature in the image, thus we reduce the value
 #of threshold to 8
 
-cv2_imshow( test_image8)
+cv2.imshow( test_image8)
 
 _, thresholded_image = cv2.threshold(test_image8, 100, 255, cv2.THRESH_BINARY)
 
 # Show the result
-cv2_imshow( thresholded_image)
+cv2.imshow( thresholded_image)
 if detect_salt_and_pepper_noise(thresholded_image):
     print("Yes")  # Salt and pepper noise detected
 else:
@@ -133,12 +133,12 @@ average_intensity = np.mean(test_image8)
 
 print(f"Average Intensity: {average_intensity}") #157, grayish
 
-cv2_imshow( test_image9)
+cv2.imshow( test_image9)
 
 _, thresholded_image = cv2.threshold(test_image9, 100, 255, cv2.THRESH_BINARY)
 
 # Show the result
-cv2_imshow( thresholded_image)
+cv2.imshow( thresholded_image)
 if detect_salt_and_pepper_noise(thresholded_image):
     print("Yes")  # Salt and pepper noise detected
 else:
@@ -149,12 +149,12 @@ average_intensity = np.mean(test_image9)
 
 print(f"Average Intensity: {average_intensity}") #bright, 200
 
-cv2_imshow( test_image10)
+cv2.imshow( test_image10)
 
 _, thresholded_image = cv2.threshold(test_image10, 100, 255, cv2.THRESH_BINARY)
 
 # Show the result
-cv2_imshow( thresholded_image)
+cv2.imshow( thresholded_image)
 if detect_salt_and_pepper_noise(thresholded_image):
     print("Yes")  # Salt and pepper noise detected
 else:
@@ -171,7 +171,7 @@ print(f"Average Intensity: {average_intensity}")
 _, thresholded_image = cv2.threshold(test_image11, 100, 255, cv2.THRESH_BINARY) #not the solution, 7alaha nzawd contrast
 
 # Show the result
-#cv2_imshow( thresholded_image)
+#cv2.imshow( thresholded_image)
 #if detect_salt_and_pepper_noise(thresholded_image):
 #    print("Yes")  # Salt and pepper noise detected
 #else:
@@ -184,13 +184,13 @@ plt.show()
 
 equalized_image = cv2.equalizeHist(test_image11)
 
-cv2_imshow(test_image11)
-cv2_imshow(equalized_image)
+cv2.imshow(test_image11)
+cv2.imshow(equalized_image)
 
 _, thresholded_image = cv2.threshold(equalized_image, 100, 255, cv2.THRESH_BINARY)
 
 # Show the result
-cv2_imshow( thresholded_image)
+cv2.imshow( thresholded_image)
 if detect_salt_and_pepper_noise(thresholded_image):
     print("Yes")  # Salt and pepper noise detected
 else:
@@ -219,7 +219,7 @@ wow_img = increase_contrast(test_image11)
 average_intensity = np.mean(wow_img)
 
 print(f"Average Intensity: {average_intensity}")
-cv2_imshow(increase_contrast(test_image11))
+cv2.imshow(increase_contrast(test_image11))
 
 '''
 Plans:
@@ -244,7 +244,7 @@ def apply_dynamic_threshold(image, avg_intensity):
 
 avg_int = calc_avg_intensity(test_image1)
 thresh_test_image1 = apply_dynamic_threshold(test_image1, avg_int)
-cv2_imshow(thresh_test_image1)
+cv2.imshow(thresh_test_image1)
 if detect_salt_and_pepper_noise(thresh_test_image1):
     print("Yes")  # Salt and pepper noise detected
 else:
@@ -259,7 +259,7 @@ for index, image in valid_images:
 
     # display the thresholded image
     print(f"Thresholded Image {index}",)
-    cv2_imshow( thresh_image)
+    cv2.imshow( thresh_image)
 
     # last check for salt-and-pepper noise in the thresholded image
     if detect_salt_and_pepper_noise(thresh_image):

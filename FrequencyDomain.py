@@ -93,7 +93,6 @@ def apply_notch_filter(Fshift, M, N, D0=50):
                 H[u, v] = 0  # Remove the low frequencies around the center
     return Fshift * H
 
-
 def noise_reduction_barcode(img_path):
     # Load the image
     img = cv2.imread(img_path, 0)
@@ -153,21 +152,17 @@ def noise_reduction_barcode(img_path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-
 # Path to the barcode image
 img_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
 
 # Run the noise reduction and barcode enhancement process
 # noise_reduction_barcode(img_path)
 
-
-
 def give_me_circle_mask_nowww(mask_size, radius):
     mask = np.zeros(mask_size)
     cy = mask.shape[0] // 2
     cx = mask.shape[1] // 2
     return cv2.circle(mask, (cx, cy), radius, (255, 255, 255), -1).astype(np.uint8)
-
 
 def try_lowpass(dft_img, limit, gaussian: bool = False):
     mask = give_me_circle_mask_nowww(dft_img.shape, limit)
@@ -176,7 +171,6 @@ def try_lowpass(dft_img, limit, gaussian: bool = False):
     dft_img_shifted = np.fft.fftshift(dft_img)
     dft_img_shifted_lowpass = np.multiply(dft_img_shifted, mask)
     plot_shifted_fft_and_ifft(dft_img_shifted_lowpass)
-
 
 def try_highpass(dft_img, limit, gaussian: bool = False, keep_dc: bool = False):
     mask = ~give_me_circle_mask_nowww(dft_img.shape, limit)
@@ -188,18 +182,22 @@ def try_highpass(dft_img, limit, gaussian: bool = False, keep_dc: bool = False):
     dft_img_shifted_highpass = np.multiply(dft_img_shifted, mask)
     plot_shifted_fft_and_ifft(dft_img_shifted_highpass)
 
-
 def plot_shifted_fft_and_ifft(dft_img_shifted):
     img = np.fft.ifft2(np.fft.ifftshift(dft_img_shifted))
     fig, (ax1, ax2) = plt.subplots(figsize=(10, 5), nrows=1, ncols=2)
-    ax1.set(yticks=[0, img.shape[0]//2, img.shape[0] - 1],
-            yticklabels=[-img.shape[0]//2, 0, img.shape[0]//2 - 1])
-    ax1.set(xticks=[0, img.shape[1]//2, img.shape[1] - 1],
-            xticklabels=[-img.shape[1]//2, 0, img.shape[1]//2 - 1])
+    ax1.set(yticks=[0, img.shape[0]//2, img.shape[0] - 1],yticklabels=[-img.shape[0]//2, 0, img.shape[0]//2 - 1])
+    ax1.set(xticks=[0, img.shape[1]//2, img.shape[1] - 1],xticklabels=[-img.shape[1]//2, 0, img.shape[1]//2 - 1])
     ax1.imshow(np.abs(dft_img_shifted)**0.1, cmap='gray')
     ax2.imshow(np.abs(img), cmap='gray')
-    plt.show()
 
+
+    img = np.abs(img.astype(np.uint16))
+    # plt.imsave("AX2.jpg",img)
+    # img = cv2.imread("AX2.jpg") 
+    cv2.imshow("AX2", img)
+    # ax2 = ax2.astype(np.uint32)
+    # ax2.imsave("Test Cases\\11 - bayza 5ales di bsara7a#3.jpg", np.abs(img), p)
+    plt.show()
 
 def noiseReductionFrequencyDomain2(image_path, cutoff_scale=1.0):
     
@@ -245,32 +243,29 @@ def noiseReductionFrequencyDomain2(image_path, cutoff_scale=1.0):
     g_high_pass = g_high_pass.astype(np.uint8)
     return g_high_pass
 
-
 def update_filter(scale):
     cutoff_scale = scale / 25  # Normalize scale
     filtered_image = noiseReductionFrequencyDomain2(
         "Test Cases\\11 - bayza 5ales di bsara7a.jpg", cutoff_scale)
     cv2.imshow("Filtered Image", filtered_image)
 
-img = cv2.imread("Warp.jpg")
+img = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg")
 cv2.imshow("Original Image", img)
 img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 dft_img = np.fft.fft2(img_gray)
 dft_img_shift = np.fft.fftshift(dft_img)
 # plt.imshow(np.log(np.abs(dft_img_shift)), cmap='gray')
 # plt.show()
-
 try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
 
 # cv2.namedWindow("Filtered Image")
 # cv2.createTrackbar("Cutoff Scale", "Filtered Image", 1, 100, update_filter)
-
 # img = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
 # update_filter(10)  # Initial filter
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
 
-
+# noiseReductionFrequencyDomain(cv2.imread("C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\TestCases\\12 - bayza 5ales di bsara7a#3.jpg", 0))
 
 # noiseReductionFrequencyDomain2("C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\TestCases\\11 - bayza 5ales di bsara7a.jpg", 1.0)
 
@@ -327,11 +322,6 @@ try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
 
 # plt.tight_layout()
 # plt.show()
-
-
-
-# noiseReductionFrequencyDomain(cv2.imread("C:\\ASU\\ASU\\Fall 2024\\Computer Vision\\TestCases\\12 - bayza 5ales di bsara7a#3.jpg", 0))
-
 
 # original image
 # f = cv2.imread(

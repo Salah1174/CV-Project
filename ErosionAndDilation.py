@@ -65,6 +65,8 @@ def detect_barcode(image):
         closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     cnt = sorted(cnts, key=cv2.contourArea, reverse=True)[0]
+    # cv2.drawContours(image, [cnt], -1, (0, 255, 0), 100)
+    # cv2.imshow("Image", image)
     # img_prespective = image
     if cv2.contourArea(cnt) > 0:  # Check if contour is valid
         # compute the rotated bounding box of the largest contour
@@ -74,7 +76,7 @@ def detect_barcode(image):
         # box coordinates
         x, y, w, h = cv2.boundingRect(box)
         box = reorder(box)
-        # print(box)
+        print(box)
 
         # Crop the barcode
         cropped_barcode = image[y : y + h, x : x + w]  # Salma Hisham
@@ -283,6 +285,44 @@ def noiseReductionFrequencyDomain(img):
     return g_high_pass
 
 
+def give_me_circle_mask_nowww(mask_size, radius):
+    mask = np.zeros(mask_size)
+    cy = mask.shape[0] // 2
+    cx = mask.shape[1] // 2
+    return cv2.circle(mask, (cx, cy), radius, (255, 255, 255), -1).astype(np.uint8)
+
+def try_highpass(dft_img, limit, gaussian: bool = False, keep_dc: bool = False):
+    mask = ~give_me_circle_mask_nowww(dft_img.shape, limit)
+    if (gaussian):
+        mask = cv2.GaussianBlur(mask, (21, 21), 0)
+    if (keep_dc):
+        mask[dft_img.shape[0]//2, dft_img.shape[1]//2] = 255
+    dft_img_shifted = np.fft.fftshift(dft_img)
+    dft_img_shifted_highpass = np.multiply(dft_img_shifted, mask)
+    freqimg = plot_shifted_fft_and_ifft(dft_img_shifted_highpass)
+    return freqimg
+
+
+def plot_shifted_fft_and_ifft(dft_img_shifted):
+    img = np.fft.ifft2(np.fft.ifftshift(dft_img_shifted))
+    fig, (ax1, ax2) = plt.subplots(figsize=(10, 5), nrows=1, ncols=2)
+    ax1.set(yticks=[0, img.shape[0]//2, img.shape[0] - 1],
+            yticklabels=[-img.shape[0]//2, 0, img.shape[0]//2 - 1])
+    ax1.set(xticks=[0, img.shape[1]//2, img.shape[1] - 1],
+            xticklabels=[-img.shape[1]//2, 0, img.shape[1]//2 - 1])
+    # ax1.imshow(np.abs(dft_img_shifted)**0.1, cmap='gray')
+    # ax2.imshow(np.abs(img), cmap='gray')
+
+    img = np.abs(img.astype(np.uint16))
+    # plt.imsave("AX2.jpg",img)
+    # img = cv2.imread("AX2.jpg")
+    # cv2.imshow("AX2", img)
+    # ax2 = ax2.astype(np.uint32)
+    # ax2.imsave("Test Cases\\11 - bayza 5ales di bsara7a#3.jpg", np.abs(img), p)
+    # plt.show()
+    return img
+
+
 def RegionFilling(img):
     # Threshold.
     # Set values equal to or above 220 to 0.
@@ -345,13 +385,52 @@ def AdaptiveGaussian(img1):
     	cv2.destroyAllWindows()
 
 
+# This is what im gonna use **********************************
+def increase_contrast(image):
+    # Apply linear contrast stretching
+    min_val, max_val = np.min(image), np.max(image)
+    contrast_image = (image - min_val) * (255 / (max_val - min_val))
+    contrast_image = np.uint8(contrast_image)  # Convert back to uint8 type
+
+    return contrast_image
+
+
+def calc_avg_intensity(image):
+    return np.mean(image)
+
+
+def apply_dynamic_threshold(image, avg_intensity):
+    if (avg_intensity>120 and avg_intensity<130 ): #check if gray compressed (only one that causes issues with threshold is gray compressed)
+      image = increase_contrast(image)
+      avg_intensity = calc_avg_intensity(image)
+
+    threshold_value = int(avg_intensity * 0.75)
+    _, thresholded_image = cv2.threshold(image, threshold_value, 255, cv2.THRESH_BINARY)
+    return thresholded_image
+
+
 img = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
 
 
-noisereducedimg = noiseReductionSaltAndPeper(img)
-Wrappedimg = detect_barcode(noisereducedimg)
-highpassimg = noiseReductionFrequencyDomain(Wrappedimg)
-AdaptiveGaussian(highpassimg)
+img = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg")
+cv2.imshow("Original Image", img)
+img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+dft_img = np.fft.fft2(img_gray)
+dft_img_shift = np.fft.fftshift(dft_img)
+# plt.imshow(np.log(np.abs(dft_img_shift)), cmap='gray')
+# plt.show()
+
+
+freqimg = try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
+avg_int = calc_avg_intensity(freqimg)
+contrastimg = increase_contrast(freqimg)
+# contrastimg = apply_dynamic_threshold(freqimg, avg_int)
+
+# noisereducedimg = noiseReductionSaltAndPeper(freqimg)
+
+Wrappedimg = detect_barcode(contrastimg)
+# highpassimg = noiseReductionFrequencyDomain(Wrappedimg)
+# AdaptiveGaussian(Wrappedimg)
 
 
 # Reading the input image
