@@ -543,16 +543,16 @@ def applydynamic_threshold(image, avg_intensity):
 # "Test Cases\\02 - still easy.jpg", 0) #done
 # "Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg", 0)#done
 # "Test Cases\\04 - fen el nadara.jpg", 0) #done
-# "Test Cases\\05 - meen taffa el nour!!!.jpg", 0)
-# "Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg", 0)
+# "Test Cases\\05 - meen taffa el nour!!!.jpg", 0)#done
+# "Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg", 0)#done
 # "Test Cases\\07 - mal7 w felfel.jpg", 0) #done
 # "Test Cases\\08 - compresso espresso.jpg", 0) #done
 # "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)#done
-# "Test Cases\\10 - wen el kontraastttt.jpg", 0)
+# "Test Cases\\10 - wen el kontraastttt.jpg", 0)#done
 # "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0) #done
 # "Barcode_Noise_3.jpg", 0)
 # Load the image in grayscale
-image_path ="Test Cases\\10 - wen el kontraastttt.jpg"
+image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg"
 img = cv2.imread(image_path, 0)
 
 
@@ -602,7 +602,8 @@ if is_salt_pepper:
         dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
         detect_barcode(dil_img)
 else:
-    detect_barcode(img)
+    result =increase_contrast(img)
+    detect_barcode(result)
 
         
 
