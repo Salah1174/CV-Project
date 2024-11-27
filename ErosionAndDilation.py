@@ -3,138 +3,180 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 
-# This function reorder the corners points appropriatly
-# Helped significantly with warp function
+def AdaptiveGaussian(img):
+	
+    # path to input image is specified and
+    # image is loaded with imread command
+    # image1 = cv2.imread(image_path)
 
-def reorder(myPoints):
-    myPoints = myPoints.reshape((4, 2))
-    myPointsNew = np.zeros((4, 1, 2), dtype=np.int32)
-    add = myPoints.sum(1)
-    myPointsNew[1] = myPoints[np.argmin(add)]
-    myPointsNew[3] = myPoints[np.argmax(add)]
-    diff = np.diff(myPoints, axis=1)
-    myPointsNew[0] = myPoints[np.argmin(diff)]
-    myPointsNew[2] = myPoints[np.argmax(diff)]
-    return myPointsNew
+    # cv2.cvtColor is applied over the
+    # image input with applied parameters
+    # to convert the image in grayscale
+    # img = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
 
-def detect_barcode(image):
-    # 1---->canny
+    # applying different thresholding
+    # techniques on the input image
+    thresh1 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                    cv2.THRESH_BINARY, 31, 5)
 
-    # blurred = cv2.GaussianBlur(image, (9, 9), 0)
-    # edges = cv2.Canny(image, 50, 150)
-    # blurred = cv2.blur(edges, (9, 9))
-    # _, thresh = cv2.threshold(blurred, 50, 255, cv2.THRESH_BINARY)
+    thresh2 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                    cv2.THRESH_BINARY, 31, 5)
 
-    # 2---->blur before sobel
+    # the window showing output images
+    # with the corresponding thresholding
+    # techniques applied to the input image
+    cv2.imshow('Adaptive Mean', thresh1)
+    cv2.imshow('Adaptive Gaussian', thresh2)
 
-    blurred = cv2.GaussianBlur(image, (5, 5), 0)
-    # compute the Scharr gradient magnitude representation of the images in both the x and y direction
-    gradX = cv2.Sobel(blurred, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
-    gradY = cv2.Sobel(blurred, ddepth=cv2.CV_32F, dx=0, dy=1, ksize=-1)
 
-    # 3---->sobel bas
+    # De-allocate any associated memory usage
+    if cv2.waitKey(0) & 0xff == 27:
+    	cv2.destroyAllWindows()
+# from untitled4 import detect_salt_and_pepper_noise
+# All images passes through this function 
+# If salt and pepper true and freq domain true else false
+def detect_salt_and_pepper_noise(image, black_threshold=20, white_threshold=80):
+    total_pixels = image.size
+    black_pixels = np.sum(image == 0)
+    white_pixels = np.sum(image == 255)
 
-    # # compute the Scharr gradient magnitude representation of the images in both the x and y direction
-    # gradX = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
-    # gradY = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
+    black_ratio = black_pixels / total_pixels * 100
+    white_ratio = white_pixels / total_pixels * 100
 
-    # gradient 2, 3 only
+    if black_ratio > black_threshold or white_ratio < white_threshold:
+        return True
 
-    # subtract the y-gradient from the x-gradient
-    gradient = cv2.subtract(gradX, gradY)
-    gradient = cv2.convertScaleAbs(gradient)
-    # blur and threshold the image
-    blurred = cv2.blur(gradient, (9, 9))
-    (_, thresh) = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
+    return False
 
-    # construct a closing kernel and apply it to the thresholded image
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
-    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+#if detect_salt_and_pepper_noise is true to determine whether it is salt and pepper(false) or freq domain(true)
+def plot_time_domain(image_path, row=None, col=None):
+    """
+    Plots the time-domain representation of pixel intensities from an image.
+    
+    Args:
+        image_path (str): Path to the input image.
+        row (int, optional): Row index to extract pixel intensities. If None, the middle row is used.
+        col (int, optional): Column index to extract pixel intensities. If None, the middle column is used.
+    """
+    # Load the image in grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        raise ValueError("Image not found or unable to load!")
+    
+    # Get image dimensions
+    rows, cols = image.shape
+    
+    # Determine which row or column to extract
+    if row is None and col is None:
+        row = rows // 2  # Default to the middle row
+    elif row is not None and (row < 0 or row >= rows):
+        raise ValueError(f"Row index out of bounds. Must be between 0 and {rows - 1}.")
+    elif col is not None and (col < 0 or col >= cols):
+        raise ValueError(f"Column index out of bounds. Must be between 0 and {cols - 1}.")
+    
+    # Extract the pixel intensities
+    if row is not None:
+        intensities = image[row, :]  # Pixel intensities from the row
+        x = np.arange(cols)  # X-axis: column indices
+        label = f"Row {row}"
+    else:
+        intensities = image[:, col]  # Pixel intensities from the column
+        x = np.arange(rows)  # X-axis: row indices
+        label = f"Column {col}"
 
-    # perform a series of erosions and dilations
-    # cv2.imshow("closed1", closed)
-    closed = cv2.erode(closed, None, iterations=4)
+    # Plot the time-domain representation
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, intensities, label=label, color='b')
+    plt.title(f"Time-Domain Representation of {label}")
+    plt.xlabel("Pixel Index")
+    plt.ylabel("Pixel Intensity")
+    plt.grid()
+    plt.legend()
+    plt.show()
+    return intensities
 
-    closed = cv2.dilate(closed, None, iterations=4)
+def analyze_peaks(signal, height=150, distance=50, tolerance=5, plot=True):
+    """
+    Detects peaks in the given signal, checks if the differences between the peaks are approximately equal,
+    and optionally plots the signal with detected peaks.
 
-    # find the contours in the thresholded image,
-    #  then sort the contours by their area,
-    #  keeping only the largest one
-    (cnts, _) = cv2.findContours(
-        closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-    cnt = sorted(cnts, key=cv2.contourArea, reverse=True)[0]
-    # cv2.drawContours(image, [cnt], -1, (0, 255, 0), 100)
-    # cv2.imshow("Image", image)
-    # img_prespective = image
-    if cv2.contourArea(cnt) > 0:  # Check if contour is valid
-        # compute the rotated bounding box of the largest contour
-        rect = cv2.minAreaRect(cnt)
-        box = np.int32(cv2.boxPoints(rect))
+    Parameters:
+        signal (numpy array): The input time-domain signal (1D array).
+        height (float): Minimum height for a point to be considered a peak. Default is 150.
+        distance (int): Minimum distance between consecutive peaks. Default is 50.
+        tolerance (int): Allowed deviation for equal distances. Default is 5.
+        plot (bool): Whether to plot the signal with detected peaks. Default is True.
 
-        # box coordinates
-        x, y, w, h = cv2.boundingRect(box)
-        box = reorder(box)
-        print(box)
+    Returns:
+        dict: A dictionary with keys:
+            - 'peaks': Indices of detected peaks.
+            - 'peak_distances': Differences between consecutive peaks.
+            - 'are_distances_equal': Boolean indicating if distances are approximately equal.
+    """
+    # Detect peaks
+    peaks, _ = find_peaks(signal, height=height, distance=distance)
+    
+    # Calculate peak distances
+    peak_distances = np.diff(peaks)
+    are_distances_equal = np.allclose(peak_distances, peak_distances[0], atol=tolerance)
+    
+    # Plot the signal and peaks if requested
+    if plot:
+        x = np.arange(len(signal))  # Create an index for the signal
+        plt.figure(figsize=(10, 5))
+        plt.plot(x, signal, label='Signal')
+        plt.plot(peaks, signal[peaks], 'ro', label='Detected Peaks')  # Mark peaks in red
+        plt.title('Detected Peaks in Signal')
+        plt.xlabel('Pixel Index')
+        plt.ylabel('Pixel Intensity')
+        plt.legend()
+        plt.grid()
+        plt.show()
+    
+    # Return results as a dictionary
+    return {
+        'peaks': peaks,
+        'peak_distances': peak_distances,
+        'are_distances_equal': are_distances_equal
+    }
 
-        # Crop the barcode
-        cropped_barcode = image[y : y + h, x : x + w]  # Salma Hisham
+def are_peaks_equally_spaced(signal, height=150, distance=50, tolerance=5):
+    """
+    Checks if the spaces (differences) between peaks in the given signal are approximately equal.
 
-        # Coordinates of each corner
-        ax = box.item(0)
-        ay = box.item(1)
+    Parameters:
+        signal (numpy array): The input time-domain signal (1D array).
+        height (float): Minimum height for a point to be considered a peak. Default is 150.
+        distance (int): Minimum distance between consecutive peaks. Default is 50.
+        tolerance (int): Allowed deviation for equal distances. Default is 5.
 
-        bx = box.item(2)
-        by = box.item(3)
+    Returns:
+        bool: True if the differences between consecutive peaks are approximately equal, False otherwise.
+    """
+    # Detect peaks
+    peaks, _ = find_peaks(signal, height=height, distance=distance)
+    
+    # Calculate peak distances
+    peak_distances = np.diff(peaks)
+    
+    # Check if all distances are approximately equal
+    return np.allclose(peak_distances, peak_distances[0], atol=tolerance)
 
-        cx = box.item(4)
-        cy = box.item(5)
+# if are_peaks_equally_spaced returns true
+def try_highpass(dft_img, limit, gaussian: bool = False, keep_dc: bool = False):
+    mask = ~give_me_circle_mask_nowww(dft_img.shape, limit)
+    if (gaussian):
+        mask = cv2.GaussianBlur(mask, (21, 21), 0)
+    if (keep_dc):
+        mask[dft_img.shape[0]//2, dft_img.shape[1]//2] = 255
+    dft_img_shifted = np.fft.fftshift(dft_img)
+    dft_img_shifted_highpass = np.multiply(dft_img_shifted, mask)
+    freqimg = plot_shifted_fft_and_ifft(dft_img_shifted_highpass)
+    return freqimg
 
-        dx = box.item(6)
-        dy = box.item(7)
-
-        pts1 = np.float32([[bx, by], [ax, ay], [cx, cy], [dx, dy]])
-        pts2 = np.float32([[0, 0], [w, 0], [0, h], [w, h]])
-
-        matrix = cv2.getPerspectiveTransform(pts1, pts2)
-        img_prespective = cv2.warpPerspective(image, matrix, (w, h))
-        # cv2.circle(image, (ax,ay), 5, (0,0,255), 20)
-        # cv2.circle(image, (bx,by), 1, (0,0,255), 10)
-        # cv2.circle(image, (cx,cy), 1, (0,0,255), 10)
-        # cv2.circle(image, (dx,dy), 1, (0,0,255), 10)
-
-        # draw a bounding box arounded the detected barcode and display the image
-        cv2.drawContours(image, [box], -1, (0, 255, 0), 3)
-
-        # cv2.imshow('Gradient', gradient)
-        # cv2.imshow('Blurred', blurred)
-        # cv2.imshow("closed2", closed)  # Salma Hisham
-        cv2.imshow("Image", image)  # salma hisham
-        # cv2.imshow("Cropped Barcode", cropped_barcode)  # Salma Hisham
-        cv2.imshow("Warp", img_prespective)
-        cv2.imwrite("Warp.jpg", img_prespective) 
-    cv2.waitKey(0)
-    return img_prespective
-
-def sharpen_image(image):
-    # Define the sharpening kernel
-    kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
-
-    # Apply the sharpening filter
-    sharpened = cv2.filter2D(image, -1, kernel)
-
-    return sharpened
-
-def enhance_barcode(image):
-    # Step 1: Load the image (grayscale) after noise removal
-    # image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-
-    # Step 2: Sharpen the image to improve clarity
-    sharpened_image = sharpen_image(image)
-
-    return sharpened_image
-
+# if are_peaks_equally_spaced returns False
 def noiseReductionSaltAndPeper(image_path):
     img = cv2.imread(image_path, 0)
 
@@ -213,95 +255,226 @@ def noiseReductionSaltAndPeper(image_path):
 
     # dst = cv2.Laplacian(img, CV_16S, ksize=kernel_size)
 
-def noiseReductionFrequencyDomain(img):
-    # Original image
-    # f = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
-    cv2.imshow("Original Image", img)
+def make_columns_uniform(image):
+    height, width = image.shape
+    num_parts = 6
+    part_height = height // num_parts
+    
+    for x in range(width):
+        part_most_common = []
 
-    # Image in frequency domain
-    F = np.fft.fft2(img)
-    Fshift = np.fft.fftshift(F)
+        for part in range(num_parts):
+            start_idx = part * part_height
+            end_idx = (part + 1) * part_height if part != num_parts - 1 else height
+            part_pixels = image[start_idx:end_idx, x]
 
-    # Filter: Low pass filter
-    M, N = img.shape
-    H = np.zeros((M, N), dtype=np.float32)
-    D0 = 25
-    for u in range(M):
-        for v in range(N):
-            D = np.sqrt((u - M/2)**2 + (v - N/2)**2)
-            if D <= D0:
-                H[u, v] = 1
-            else:
-                H[u, v] = 0
+            # Find  most common pixel value in the part
+            unique, counts = np.unique(part_pixels, return_counts=True)
+            
+            for idx, item in enumerate(unique):
+                if item >= 128:
+                    unique[idx] = 255
+                else:
+                    unique[idx] = 0
+            
+            mode_pixel = unique[np.argmax(counts)]
+            part_most_common.append(mode_pixel)
+        
+        # Determine the most common value among the parts
+        final_unique, final_counts = np.unique(part_most_common, return_counts=True)
+        most_common_pixel = final_unique[np.argmax(final_counts)]
 
-    # Ideal Low Pass Filtering
-    Gshift = Fshift * H
-    G = np.fft.ifftshift(Gshift)
-    g_low_pass = np.abs(np.fft.ifft2(G))
+        # Set all pixels in the column to the most common value
+        image[:, x] = most_common_pixel
+        
+            
+        # # Get the pixels in the current column
+        # column_pixels = image[:, x]
+        # cnt = [0,0]
+        # # Find the most common pixel value in the column
+        # unique, counts = np.unique(column_pixels, return_counts=True)
+        # # mode_pixel = unique[np.argmax(counts)]
 
-    # Display Low-Pass Filtered Image
-    cv2.imshow("Low-Pass Filtered Image", g_low_pass.astype(np.uint8))
+        # for idx, item in enumerate(unique):
+        #     if(item >= 128):
+        #         unique[idx] = 255
+        #         cnt[0]+=1
+        #     else:
+        #         unique[idx] = 0
+        #         cnt[1]+=1
 
-    # Filter: High pass filter
-    H = 1 - H
+        # print(unique)
+        # print(unique[np.argmax(counts)])
+        # # Set all pixels in the column to the most common value
+        # image[:, x] = 0 if cnt[1] > cnt[0] else 255
+    
 
-    # Ideal High Pass Filtering
-    Gshift = Fshift * H
-    G = np.fft.ifftshift(Gshift)
-    g_high_pass = np.abs(np.fft.ifft2(G))
+    return image
 
-    # Display High-Pass Filtered Image
-    cv2.imshow("High-Pass Filtered Image", g_high_pass.astype(np.uint8))
-    cv2.imwrite("High_Pass.jpg", g_high_pass.astype(np.uint8))
-    # Inverse the High-Pass Filtered Image
-    g_inverse = 256 - g_high_pass
+# This function reorder the corners points appropriatly
+# Helped significantly with warp function
+def reorder(myPoints):
+    myPoints = myPoints.reshape((4, 2))
+    myPointsNew = np.zeros((4, 1, 2), dtype=np.int32)
+    add = myPoints.sum(1)
+    myPointsNew[1] = myPoints[np.argmin(add)]
+    myPointsNew[3] = myPoints[np.argmax(add)]
+    diff = np.diff(myPoints, axis=1)
+    myPointsNew[0] = myPoints[np.argmin(diff)]
+    myPointsNew[2] = myPoints[np.argmax(diff)]
+    return myPointsNew
 
-    # for pixel in range(g_inverse.shape[0]):
-    #     for pixel2 in range(g_inverse.shape[1]):
-    #         if g_inverse[pixel][pixel2] >= 255 :
-    #             g_inverse[pixel][pixel2] = 0
+def detect_barcode(image):   
+    
+    # 1---->canny
 
-    cv2.imshow("Inverted High-Pass Image", g_inverse.astype(np.uint8))
-    cv2.imwrite("Inverted_High_Pass.jpg", g_inverse.astype(np.uint8))
-    histogram = cv2.calcHist([g_inverse.astype(np.uint8)], [
-        0], None, [256], [0, 256])
+    # blurred = cv2.GaussianBlur(image, (9, 9), 0)
+    # edges = cv2.Canny(image, 50, 150)  
+    # blurred = cv2.blur(edges, (9, 9))
+    # _, thresh = cv2.threshold(blurred, 50, 255, cv2.THRESH_BINARY)
 
-    # for intensity, frequency in enumerate(histogram):
-        # print(f"Intensity: {intensity}, Frequency: {int(frequency)}")
+    #2---->blur before sobel
 
-    # Plot the histogram
-    plt.figure()
-    plt.title("Grayscale Histogram")
-    plt.xlabel("Pixel Intensity")
-    plt.ylabel("Frequency")
-    plt.plot(histogram)
-    plt.xlim([0, 256])
-    plt.show()
+    blurred = cv2.GaussianBlur(image, (5, 5),0)
+    # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
+    gradX = cv2.Sobel(blurred, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
+    gradY = cv2.Sobel(blurred, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
+    
+    #3---->sobel bas
 
-    # Wait for a key press to close windows
+    # # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
+    # gradX = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
+    # gradY = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
+
+    # gradient 2, 3 only
+
+    # subtract the y-gradient from the x-gradient
+    gradient = cv2.subtract(gradX, gradY) 
+    gradient = cv2.convertScaleAbs(gradient)
+    # blur and threshold the image 
+    blurred = cv2.blur(gradient, (9, 9))
+    (_, thresh) = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
+
+
+    # construct a closing kernel and apply it to the thresholded image
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
+    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    # perform a series of erosions and dilations
+    # cv2.imshow('closed1', closed)
+    closed = cv2.erode(closed, None, iterations = 4)
+
+    closed = cv2.dilate(closed, None, iterations = 4)
+
+    # find the contours in the thresholded image,
+    #  then sort the contours by their area,
+    #  keeping only the largest one
+    (cnts, _) = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    cnt = sorted(cnts, key = cv2.contourArea, reverse = True)[0] 
+    
+    if cv2.contourArea(cnt) > 0:  # Check if contour is valid
+
+        # compute the rotated bounding box of the largest contour
+        rect = cv2.minAreaRect(cnt)
+        box = np.int32(cv2.boxPoints(rect))
+        box = reorder(box)
+        
+       
+        # Coordinates of each corner
+        ax = box.item(0)
+        ay = box.item(1)
+
+        bx = box.item(2)
+        by = box.item(3)
+
+        cx = box.item(4)
+        cy = box.item(5)
+
+        dx = box.item(6)
+        dy = box.item(7)
+
+        # box coordinates
+        x, y, w, h = cv2.boundingRect(box) 
+        
+        # print(box)
+        border_threshold = 10
+        # height, width = image.shape[:2]
+        widthA = np.sqrt(((cx - dx) ** 2) + ((cy - dy) ** 2))
+        widthB = np.sqrt(((ax - bx) ** 2) + ((ay - by) ** 2))
+        width = max(int(widthA), int(widthB))
+        
+        heightA = np.sqrt(((ax - dx) ** 2) + ((ay - dy) ** 2))
+        heightB = np.sqrt(((bx - cx) ** 2) + ((by - cy) ** 2))
+        height = max(int(heightA), int(heightB))
+        
+        print(width, height)
+        print (x, y, w, h)
+        print(ax, ay, bx, by, cx, cy, dx, dy)
+        if x < border_threshold:
+            x = 0
+        if x + w > width - border_threshold:
+            w = width - x
+        if y < border_threshold:
+            y = 0
+        if y + h > height - border_threshold:
+            h = height - y
+
+        # Draw the extended bounding box
+        # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+        # Crop the barcode 
+        cropped_barcode = image[y:y+height, x:x+width] 
+
+        
+        pts1 = np.float32([[bx, by], [ax, ay], [cx, cy], [dx, dy]])
+        pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+
+        matrix = cv2.getPerspectiveTransform(pts1, pts2)
+        img_prespective = cv2.warpPerspective(image, matrix, (width, height))
+        # cv2.circle(image, (ax,ay), 5, (0,0,255), 20)
+        # cv2.circle(image, (bx,by), 1, (0,0,255), 10)
+        # cv2.circle(image, (cx,cy), 1, (0,0,255), 10)
+        # cv2.circle(image, (dx,dy), 1, (0,0,255), 10)
+        
+        # draw a bounding box arounded the detected barcode and display the image
+        # cv2.drawContours(image, [box], -1, (0, 255, 0), 3) 
+
+
+        # cv2.imshow('Gradient', gradient)
+        # cv2.imshow('Blurred', blurred)
+        # cv2.imshow('closed2', closed) 
+        # cv2.imshow("Image", image) 
+        # cv2.imshow('Cropped Barcode', cropped_barcode) 
+        cv2.imshow("Warp", img_prespective) 
+
+        uniform_image = make_columns_uniform(img_prespective)
+        cv2.imshow("Uniform Image", uniform_image)
+        
     cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    g_high_pass = g_high_pass.astype(np.uint8)
-    return g_high_pass
 
+def sharpen_image(image):
+    # Define the sharpening kernel
+    kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+
+    # Apply the sharpening filter
+    sharpened = cv2.filter2D(image, -1, kernel)
+
+    return sharpened
+
+def enhance_barcode(image):
+    # Step 1: Load the image (grayscale) after noise removal
+    # image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+
+    # Step 2: Sharpen the image to improve clarity
+    sharpened_image = sharpen_image(image)
+
+    return sharpened_image
 
 def give_me_circle_mask_nowww(mask_size, radius):
     mask = np.zeros(mask_size)
     cy = mask.shape[0] // 2
     cx = mask.shape[1] // 2
     return cv2.circle(mask, (cx, cy), radius, (255, 255, 255), -1).astype(np.uint8)
-
-def try_highpass(dft_img, limit, gaussian: bool = False, keep_dc: bool = False):
-    mask = ~give_me_circle_mask_nowww(dft_img.shape, limit)
-    if (gaussian):
-        mask = cv2.GaussianBlur(mask, (21, 21), 0)
-    if (keep_dc):
-        mask[dft_img.shape[0]//2, dft_img.shape[1]//2] = 255
-    dft_img_shifted = np.fft.fftshift(dft_img)
-    dft_img_shifted_highpass = np.multiply(dft_img_shifted, mask)
-    freqimg = plot_shifted_fft_and_ifft(dft_img_shifted_highpass)
-    return freqimg
-
 
 def plot_shifted_fft_and_ifft(dft_img_shifted):
     img = np.fft.ifft2(np.fft.ifftshift(dft_img_shifted))
@@ -313,7 +486,9 @@ def plot_shifted_fft_and_ifft(dft_img_shifted):
     # ax1.imshow(np.abs(dft_img_shifted)**0.1, cmap='gray')
     # ax2.imshow(np.abs(img), cmap='gray')
 
-    img = np.abs(img.astype(np.uint16))
+    # img = np.abs(img.astype(np.uint16))
+    img = np.abs(img)  # Get magnitude
+    img = img.astype(np.uint16) 
     # plt.imsave("AX2.jpg",img)
     # img = cv2.imread("AX2.jpg")
     # cv2.imshow("AX2", img)
@@ -322,70 +497,8 @@ def plot_shifted_fft_and_ifft(dft_img_shifted):
     # plt.show()
     return img
 
-
-def RegionFilling(img):
-    # Threshold.
-    # Set values equal to or above 220 to 0.
-    # Set values below 220 to 255.
-
-    th, im_th = cv2.threshold(img, 255, 255, cv2.THRESH_BINARY_INV)
-
-    # Copy the thresholded image.
-    im_floodfill = im_th.copy()
-
-    # Mask used to flood filling.
-    # Notice the size needs to be 2 pixels than the image.
-    h, w = im_th.shape[:2]
-    mask = np.zeros((h+2, w+2), np.uint8)
-
-    # Floodfill from point (0, 0)
-    cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-
-    # Invert floodfilled image
-    im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-
-    # Combine the two images to get the foreground.
-    im_out = im_th | im_floodfill_inv
-
-    # Display images.
-    cv2.imshow("Thresholded Image", im_th)
-    cv2.imshow("Floodfilled Image", im_floodfill)
-    cv2.imshow("Inverted Floodfilled Image", im_floodfill_inv)
-    cv2.imshow("Foreground", im_out)
-    cv2.waitKey(0)
-
-
-def AdaptiveGaussian(img1):
-
-    # path to input image is specified and
-    # image is loaded with imread command
-    # image1 = cv2.imread(image_path)
-
-    # cv2.cvtColor is applied over the
-    # image input with applied parameters
-    # to convert the image in grayscale
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # applying different thresholding
-    # techniques on the input image
-    # thresh1 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
-    #                                 cv2.THRESH_BINARY, 199, 5)
-
-    thresh2 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                    cv2.THRESH_BINARY, 199, 5)
-
-    # the window showing output images
-    # with the corresponding thresholding
-    # techniques applied to the input image
-    # cv2.imshow('Adaptive Mean', thresh1)
-    cv2.imshow('Adaptive Gaussian', thresh2)
-
-    # De-allocate any associated memory usage
-    if cv2.waitKey(0) & 0xff == 27:
-    	cv2.destroyAllWindows()
-
-
 # This is what im gonna use **********************************
+# increase <20 w >220 
 def increase_contrast(image):
     # Apply linear contrast stretching
     min_val, max_val = np.min(image), np.max(image)
@@ -394,10 +507,8 @@ def increase_contrast(image):
 
     return contrast_image
 
-
 def calc_avg_intensity(image):
     return np.mean(image)
-
 
 def apply_dynamic_threshold(image, avg_intensity):
     if (avg_intensity>120 and avg_intensity<130 ): #check if gray compressed (only one that causes issues with threshold is gray compressed)
@@ -407,104 +518,104 @@ def apply_dynamic_threshold(image, avg_intensity):
     threshold_value = int(avg_intensity * 0.75)
     _, thresholded_image = cv2.threshold(image, threshold_value, 255, cv2.THRESH_BINARY)
     return thresholded_image
+def applydynamic_threshold(image, avg_intensity):
+    if (avg_intensity>120 and avg_intensity<130 ): #check if gray compressed (only one that causes issues with threshold is gray compressed)
+      image = increase_contrast(image)
+      avg_intensity = calc_avg_intensity(image)
 
+    threshold_value = int(avg_intensity * 0.75)
+    _, thresholded_image = cv2.threshold(image, threshold_value, 255, cv2.THRESH_BINARY)
+    return thresholded_image
 
-img = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
-
-
-img = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg")
-cv2.imshow("Original Image", img)
-img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-dft_img = np.fft.fft2(img_gray)
-dft_img_shift = np.fft.fftshift(dft_img)
-# plt.imshow(np.log(np.abs(dft_img_shift)), cmap='gray')
-# plt.show()
-
-
-freqimg = try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
-avg_int = calc_avg_intensity(freqimg)
-contrastimg = increase_contrast(freqimg)
-# contrastimg = apply_dynamic_threshold(freqimg, avg_int)
-
-# noisereducedimg = noiseReductionSaltAndPeper(freqimg)
-
-Wrappedimg = detect_barcode(contrastimg)
-# highpassimg = noiseReductionFrequencyDomain(Wrappedimg)
-# AdaptiveGaussian(Wrappedimg)
+# avg_int = calc_avg_intensity(test_image1)
+# thresh_test_image1 = apply_dynamic_threshold(test_image1, avg_int)
+# cv2.imshow(thresh_test_image1)
+# if detect_salt_and_pepper_noise(thresholded_image):
+#     print("Yes")  # Salt and pepper noise detected
+# else:
+#     print("No")  # No salt and pepper noise detected
 
 
 # Reading the input image
 # img = cv2.imread(
-# "Test Cases\\01 - lol easy.jpg", 0)
+# "Test Cases\\01 - lol easy.jpg", 0) #done
 # "Barcode.jpg", 0)
-# "Test Cases\\02 - still easy.jpg", 0)
-# "Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg", 0)
-# "Test Cases\\04 - fen el nadara.jpg", 0)
+# "Test Cases\\02 - still easy.jpg", 0) #done
+# "Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg", 0)#done
+# "Test Cases\\04 - fen el nadara.jpg", 0) #done
 # "Test Cases\\05 - meen taffa el nour!!!.jpg", 0)
 # "Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg", 0)
-# "Test Cases\\07 - mal7 w felfel.jpg", 0)
-# "Test Cases\\08 - compresso espresso.jpg", 0)
-# "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)
+# "Test Cases\\07 - mal7 w felfel.jpg", 0) #done
+# "Test Cases\\08 - compresso espresso.jpg", 0) #done
+# "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)#done
 # "Test Cases\\10 - wen el kontraastttt.jpg", 0)
-# "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
+# "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0) #done
 # "Barcode_Noise_3.jpg", 0)
+# Load the image in grayscale
+image_path ="Test Cases\\10 - wen el kontraastttt.jpg"
+img = cv2.imread(image_path, 0)
 
 
-# def noiseReductionInFrequencyDomain(image_path):
-#     # Load the grayscale image
-#     img = cv2.imread(image_path, 0)
+avg_intensity =calc_avg_intensity(img)
+# thresholded_image = apply_dynamic_threshold(img,avg_intensity)
+thresh = applydynamic_threshold(img,avg_intensity)
+is_salt_pepper =detect_salt_and_pepper_noise(thresh)
 
-#     # 1. Indicate and visualize the patterned noise:
-#     ft_img = np.fft.fft2(img)
-#     fshift_img = np.fft.fftshift(ft_img)
-#     magnitude_spectrum_shifted = 20 * np.log(np.abs(fshift_img))
+# if is_salt_pepper:
+#     is_salt_pepper= detect_salt_and_pepper_noise(img)
+print("salmaaa")
+print(is_salt_pepper)
+if is_salt_pepper:
+    
+    is_salt_pepper =detect_salt_and_pepper_noise(is_salt_pepper)
+    intensities =plot_time_domain(image_path,300,300)
+    print(is_salt_pepper)
+    # Call the function
+    results = analyze_peaks(intensities, height=150, distance=50, tolerance=5)
+    are_peaks_equally_spaced= are_peaks_equally_spaced(intensities)
+    # Output results
+    print("Peak indices:", results['peaks'])
+    print("Peak distances:", results['peak_distances'])
+    print("Are distances approximately equal?", results['are_distances_equal'])
+    
+    if are_peaks_equally_spaced:
+        avg_int2 = calc_avg_intensity(img)
+        dft_img = np.fft.fft2(img)
+        dft_img_shift = np.fft.fftshift(dft_img)
+        freqimg = try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
+        # If try_highpass produces complex numbers, extract magnitude
+        freqimg = np.abs(freqimg)
 
-#     # 2. Mark the spots corresponding to the patterned noise manually:
-#     center_1, center_2, center_3, center_4 = [
-#         52, 43], [40, 106], [76, 85], [89, 21]
+        # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
+        freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))  # Normalize to 0-255
 
-#     # 3. Create a mask to remove the noise at these specific frequency points:
-#     rows, cols = img.shape
-#     mask = np.ones((rows, cols), np.uint8)
-#     r = 600
-#     y, x = np.ogrid[:rows, :cols]
+        # If needed, ensure single-channel image
+        if len(freqimg.shape) > 2:
+            freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
+        contrast =increase_contrast(freqimg)
+        detect_barcode(contrast)
+        cv2.imshow("Frequency Domain",freqimg)
+    else:
+        avg_intensity =calc_avg_intensity(img)
+        thresholded_image = apply_dynamic_threshold(img,avg_intensity)
+        kernel = np.ones((3, 3), np.uint8)
+        dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
+        detect_barcode(dil_img)
+else:
+    detect_barcode(img)
 
-#     mask_area_1 = (x - center_1[1]) ** 2 + (y - center_1[0]) ** 2 <= r * r
-#     mask[mask_area_1] = 0
+        
 
-#     mask_area_2 = (x - center_2[1]) ** 2 + (y - center_2[0]) ** 2 <= r * r
-#     mask[mask_area_2] = 0
+# else :
 
-#     mask_area_3 = (x - center_3[1]) ** 2 + (y - center_3[0]) ** 2 <= r * r
-#     mask[mask_area_3] = 0
 
-#     mask_area_4 = (x - center_4[1]) ** 2 + (y - center_4[0]) ** 2 <= r * r
-#     mask[mask_area_4] = 0
 
-#     # 4. Apply the mask to the frequency domain representation:
-#     fshift_img_mask = fshift_img * mask
-#     f_ishift = np.fft.ifftshift(fshift_img_mask)
-#     img_back = np.fft.ifft2(f_ishift)
-#     img_back = np.abs(img_back)
 
-#     # Invert the colors of the denoised image
-#     # img_back_inverted = 255 - img_back
 
-#     # 5. Display the original image, mask, and the inverted denoised image:
-#     # plt.subplot(1, 3, 1)
-#     # plt.imshow(img, cmap="gray")
-#     # plt.axis("off")
-#     # plt.title("Original Image")
-# # 
-#     # plt.subplot(1, 3, 2)
-#     # plt.imshow(mask, cmap="gray")
-#     # plt.axis("off")
-#     # plt.title("Frequency Mask")
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
-#     # plt.subplot(1, 3, 3)
-#     plt.imshow(img_back, cmap="gray")
-#     plt.axis("off")
-#     plt.title("Denoised & Inverted Image")
 
-#     # Display all images.
-#     plt.show()
+
+
+

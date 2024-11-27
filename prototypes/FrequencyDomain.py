@@ -2,6 +2,77 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+def noiseReductionFrequencyDomain(img):
+    # Original image
+    # f = cv2.imread("Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0)
+    cv2.imshow("Original Image", img)
+
+    # Image in frequency domain
+    F = np.fft.fft2(img)
+    Fshift = np.fft.fftshift(F)
+
+    # Filter: Low pass filter
+    M, N = img.shape
+    H = np.zeros((M, N), dtype=np.float32)
+    D0 = 25
+    for u in range(M):
+        for v in range(N):
+            D = np.sqrt((u - M/2)**2 + (v - N/2)**2)
+            if D <= D0:
+                H[u, v] = 1
+            else:
+                H[u, v] = 0
+
+    # Ideal Low Pass Filtering
+    Gshift = Fshift * H
+    G = np.fft.ifftshift(Gshift)
+    g_low_pass = np.abs(np.fft.ifft2(G))
+
+    # Display Low-Pass Filtered Image
+    cv2.imshow("Low-Pass Filtered Image", g_low_pass.astype(np.uint8))
+
+    # Filter: High pass filter
+    H = 1 - H
+
+    # Ideal High Pass Filtering
+    Gshift = Fshift * H
+    G = np.fft.ifftshift(Gshift)
+    g_high_pass = np.abs(np.fft.ifft2(G))
+
+    # Display High-Pass Filtered Image
+    cv2.imshow("High-Pass Filtered Image", g_high_pass.astype(np.uint8))
+    cv2.imwrite("High_Pass.jpg", g_high_pass.astype(np.uint8))
+    # Inverse the High-Pass Filtered Image
+    g_inverse = 256 - g_high_pass
+
+    # for pixel in range(g_inverse.shape[0]):
+    #     for pixel2 in range(g_inverse.shape[1]):
+    #         if g_inverse[pixel][pixel2] >= 255 :
+    #             g_inverse[pixel][pixel2] = 0
+
+    cv2.imshow("Inverted High-Pass Image", g_inverse.astype(np.uint8))
+    cv2.imwrite("Inverted_High_Pass.jpg", g_inverse.astype(np.uint8))
+    histogram = cv2.calcHist([g_inverse.astype(np.uint8)], [
+        0], None, [256], [0, 256])
+
+    # for intensity, frequency in enumerate(histogram):
+        # print(f"Intensity: {intensity}, Frequency: {int(frequency)}")
+
+    # Plot the histogram
+    plt.figure()
+    plt.title("Grayscale Histogram")
+    plt.xlabel("Pixel Intensity")
+    plt.ylabel("Frequency")
+    plt.plot(histogram)
+    plt.xlim([0, 256])
+    plt.show()
+
+    # Wait for a key press to close windows
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    g_high_pass = g_high_pass.astype(np.uint8)
+    return g_high_pass
+
 
 def noiseReductionFrequencyDomain(img_path):
     # Load original image
