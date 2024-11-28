@@ -619,7 +619,7 @@ def applydynamic_threshold(image, avg_intensity):
 # "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0) #done
 # "Barcode_Noise_3.jpg", 0)
 # Load the image in grayscale
-image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
+image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg"
 img = cv2.imread(image_path, 0)
 
 
