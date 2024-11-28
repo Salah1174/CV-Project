@@ -97,52 +97,109 @@ def plot_time_domain(image_path, row=None, col=None):
     plt.show()
     return intensities
 
-def analyze_peaks(signal, height=150, distance=50, tolerance=5, plot=True):
-    """
-    Detects peaks in the given signal, checks if the differences between the peaks are approximately equal,
-    and optionally plots the signal with detected peaks.
 
-    Parameters:
-        signal (numpy array): The input time-domain signal (1D array).
-        height (float): Minimum height for a point to be considered a peak. Default is 150.
-        distance (int): Minimum distance between consecutive peaks. Default is 50.
-        tolerance (int): Allowed deviation for equal distances. Default is 5.
-        plot (bool): Whether to plot the signal with detected peaks. Default is True.
-
-    Returns:
-        dict: A dictionary with keys:
-            - 'peaks': Indices of detected peaks.
-            - 'peak_distances': Differences between consecutive peaks.
-            - 'are_distances_equal': Boolean indicating if distances are approximately equal.
+def analyze_peaks(signal, height=None, distance=50, tolerance=5, sampling_rate=1.0, plot=True):
     """
+    Analyzes peaks in the time-domain signal and computes frequency domain characteristics.
+    Returns the filter type based on the detected dominant frequencies.
+    """
+    # Dynamically adjust height if not provided
+    if height is None:
+        height = np.mean(signal) + 0.5 * np.std(signal)
+
     # Detect peaks
     peaks, _ = find_peaks(signal, height=height, distance=distance)
-    
+
+    if len(peaks) == 0:
+        print(
+            "No peaks detected. Consider adjusting the 'height' or 'distance' parameters.")
+        return {
+            'peaks': [],
+            'peak_distances': [],
+            'are_distances_equal': False,
+            'dominant_frequencies': [],
+            'magnitudes': [],
+            'filter_type': None  # No filter type if no peaks are detected
+        }
+
     # Calculate peak distances
     peak_distances = np.diff(peaks)
-    are_distances_equal = np.allclose(peak_distances, peak_distances[0], atol=tolerance)
-    
-    # Plot the signal and peaks if requested
+    are_distances_equal = np.allclose(
+        peak_distances, peak_distances[0], atol=tolerance)
+
+    # Compute FFT
+    fft_result = np.fft.fft(signal)
+    fft_magnitude = np.abs(fft_result)
+    fft_frequencies = np.fft.fftfreq(len(signal), d=1/sampling_rate)
+
+    # Consider positive frequencies
+    positive_frequencies = fft_frequencies[:len(signal)//2]
+    positive_magnitude = fft_magnitude[:len(signal)//2]
+
+    # Detect peaks in FFT magnitude
+    fft_peaks, _ = find_peaks(
+        positive_magnitude, height=np.mean(positive_magnitude))
+    dominant_frequencies = positive_frequencies[fft_peaks]
+    dominant_magnitudes = positive_magnitude[fft_peaks]
+
+    # Print the detected dominant frequencies and their magnitudes
+    print("Detected Dominant Frequencies (Hz):", dominant_frequencies * 10000)
+    print("Corresponding Magnitudes:", dominant_magnitudes)
+
+    filter_type = None  # Default filter type is None
+
+    # Determine the filter type based on the dominant frequencies
+    if dominant_frequencies.size > 0:
+        if dominant_frequencies[0] * 10000 < 60:
+            filter_type = "Low-pass"
+            print("Low Frequency: Low-pass filter likely used.")
+        else:
+            filter_type = "High-pass"
+            print("High Frequency: High-pass filter likely used.")
+    else:
+        filter_type = "Low-pass"  # Default to low-pass if no dominant frequencies
+
+    # Plot the signal and frequency domain if requested
     if plot:
-        x = np.arange(len(signal))  # Create an index for the signal
-        plt.figure(figsize=(10, 5))
-        plt.plot(x, signal, label='Signal')
-        plt.plot(peaks, signal[peaks], 'ro', label='Detected Peaks')  # Mark peaks in red
-        plt.title('Detected Peaks in Signal')
-        plt.xlabel('Pixel Index')
-        plt.ylabel('Pixel Intensity')
+        plt.figure(figsize=(12, 6))
+
+        # Plot time-domain signal
+        plt.subplot(2, 1, 1)
+        plt.plot(signal, label='Signal')
+        plt.plot(peaks, signal[peaks], 'ro', label='Detected Peaks')
+        plt.title('Time-Domain Signal with Peaks')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Amplitude')
         plt.legend()
         plt.grid()
+
+        # Plot frequency-domain
+        plt.subplot(2, 1, 2)
+        plt.plot(positive_frequencies, positive_magnitude,
+                 label='FFT Magnitude')
+        plt.plot(dominant_frequencies, dominant_magnitudes,
+                 'ro', label='Dominant Frequencies')
+        plt.title('Frequency-Domain Analysis')
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Magnitude')
+        plt.legend()
+        plt.grid()
+
+        plt.tight_layout()
         plt.show()
-    
-    # Return results as a dictionary
+
+    # Return analysis results including the filter type
     return {
         'peaks': peaks,
         'peak_distances': peak_distances,
-        'are_distances_equal': are_distances_equal
+        'are_distances_equal': are_distances_equal,
+        'dominant_frequencies': dominant_frequencies,
+        'magnitudes': dominant_magnitudes,
+        'filter_type': filter_type
     }
 
-def are_peaks_equally_spaced(signal, height=150, distance=50, tolerance=5):
+
+def are_peaks_equally_spaced(signal, height=None, distance=50, tolerance=5):
     """
     Checks if the spaces (differences) between peaks in the given signal are approximately equal.
 
@@ -175,6 +232,16 @@ def try_highpass(dft_img, limit, gaussian: bool = False, keep_dc: bool = False):
     dft_img_shifted_highpass = np.multiply(dft_img_shifted, mask)
     freqimg = plot_shifted_fft_and_ifft(dft_img_shifted_highpass)
     return freqimg
+
+
+def try_lowpass(dft_img, limit, gaussian: bool = False):
+    mask = give_me_circle_mask_nowww(dft_img.shape, limit)
+    if (gaussian):
+        mask = cv2.GaussianBlur(mask, (21, 21), 0)
+    dft_img_shifted = np.fft.fftshift(dft_img)
+    dft_img_shifted_lowpass = np.multiply(dft_img_shifted, mask)
+    plot_shifted_fft_and_ifft(dft_img_shifted_lowpass)
+
 
 # if are_peaks_equally_spaced returns False
 def noiseReductionSaltAndPeper(image_path):
@@ -552,7 +619,7 @@ def applydynamic_threshold(image, avg_intensity):
 # "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0) #done
 # "Barcode_Noise_3.jpg", 0)
 # Load the image in grayscale
-image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg"
+image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
 img = cv2.imread(image_path, 0)
 
 
@@ -571,7 +638,7 @@ if is_salt_pepper:
     print(is_salt_pepper)
     # Call the function
     results = analyze_peaks(intensities, height=150, distance=50, tolerance=5)
-    are_peaks_equally_spaced= are_peaks_equally_spaced(intensities)
+    are_peaks_equally_spaced = are_peaks_equally_spaced(intensities,height = 150)
     # Output results
     print("Peak indices:", results['peaks'])
     print("Peak distances:", results['peak_distances'])
@@ -581,19 +648,32 @@ if is_salt_pepper:
         avg_int2 = calc_avg_intensity(img)
         dft_img = np.fft.fft2(img)
         dft_img_shift = np.fft.fftshift(dft_img)
-        freqimg = try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
-        # If try_highpass produces complex numbers, extract magnitude
-        freqimg = np.abs(freqimg)
+        if results['filter_type'] == "High-pass":    
+            freqimg = try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
+            # If try_highpass produces complex numbers, extract magnitude
+            freqimg = np.abs(freqimg)
+            # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
+            freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))  # Normalize to 0-255
+            # If needed, ensure single-channel image
+            if len(freqimg.shape) > 2:
+                freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
+            contrast =increase_contrast(freqimg)
+            detect_barcode(contrast)
+            cv2.imshow("Frequency Domain", freqimg)
 
-        # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
-        freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))  # Normalize to 0-255
-
-        # If needed, ensure single-channel image
-        if len(freqimg.shape) > 2:
-            freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
-        contrast =increase_contrast(freqimg)
-        detect_barcode(contrast)
-        cv2.imshow("Frequency Domain",freqimg)
+        elif results['filter_type'] == "Low-pass":
+            freqimg = try_lowpass(dft_img, 20, gaussian=False, keep_dc=True)
+            # If try_highpass produces complex numbers, extract magnitude
+            freqimg = np.abs(freqimg)
+            # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
+            # Normalize to 0-255
+            freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))
+            # If needed, ensure single-channel image
+            if len(freqimg.shape) > 2:
+                freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
+            contrast = increase_contrast(freqimg)
+            detect_barcode(contrast)
+            cv2.imshow("Frequency Domain", freqimg)
     else:
         avg_intensity =calc_avg_intensity(img)
         thresholded_image = apply_dynamic_threshold(img,avg_intensity)

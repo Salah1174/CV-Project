@@ -1,1 +1,1 @@
-detect_salt_and_pepper_noise
+"Test Cases\\05 - meen taffa el nour!!!.jpg"
