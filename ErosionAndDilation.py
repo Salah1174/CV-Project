@@ -566,8 +566,7 @@ is_salt_pepper =detect_salt_and_pepper_noise(thresh)
 print("salmaaa")
 print(is_salt_pepper)
 if is_salt_pepper:
-    
-    is_salt_pepper =detect_salt_and_pepper_noise(is_salt_pepper)
+    # is_salt_pepper =detect_salt_and_pepper_noise(is_salt_pepper)
     intensities =plot_time_domain(image_path,300,300)
     print(is_salt_pepper)
     # Call the function

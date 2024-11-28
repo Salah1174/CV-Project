@@ -1,1 +1,1 @@
-are_peaks_equally_spaced
+detect_salt_and_pepper_noise
