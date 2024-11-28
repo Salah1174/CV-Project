@@ -124,8 +124,10 @@ def analyze_peaks(signal, height=None, distance=50, tolerance=5, sampling_rate=1
 
     # Calculate peak distances
     peak_distances = np.diff(peaks)
-    are_distances_equal = np.allclose(
-        peak_distances, peak_distances[0], atol=tolerance)
+    if len(peak_distances) > 0:
+        are_distances_equal = np.allclose(peak_distances, peak_distances[0], atol=tolerance)
+    else:
+        are_distances_equal = False
 
     # Compute FFT
     fft_result = np.fft.fft(signal)
@@ -219,7 +221,10 @@ def are_peaks_equally_spaced(signal, height=None, distance=50, tolerance=5):
     peak_distances = np.diff(peaks)
     
     # Check if all distances are approximately equal
-    return np.allclose(peak_distances, peak_distances[0], atol=tolerance)
+    if len(peak_distances) > 0:
+        return np.allclose(peak_distances, peak_distances[0], atol=tolerance)
+    else:
+        return False
 
 # if are_peaks_equally_spaced returns true
 def try_highpass(dft_img, limit, gaussian: bool = False, keep_dc: bool = False):
@@ -240,7 +245,8 @@ def try_lowpass(dft_img, limit, gaussian: bool = False):
         mask = cv2.GaussianBlur(mask, (21, 21), 0)
     dft_img_shifted = np.fft.fftshift(dft_img)
     dft_img_shifted_lowpass = np.multiply(dft_img_shifted, mask)
-    plot_shifted_fft_and_ifft(dft_img_shifted_lowpass)
+    freqimg = plot_shifted_fft_and_ifft(dft_img_shifted_lowpass)
+    return freqimg
 
 
 # if are_peaks_equally_spaced returns False
@@ -594,32 +600,20 @@ def applydynamic_threshold(image, avg_intensity):
     _, thresholded_image = cv2.threshold(image, threshold_value, 255, cv2.THRESH_BINARY)
     return thresholded_image
 
-# avg_int = calc_avg_intensity(test_image1)
-# thresh_test_image1 = apply_dynamic_threshold(test_image1, avg_int)
-# cv2.imshow(thresh_test_image1)
-# if detect_salt_and_pepper_noise(thresholded_image):
-#     print("Yes")  # Salt and pepper noise detected
-# else:
-#     print("No")  # No salt and pepper noise detected
 
-
-# Reading the input image
-# img = cv2.imread(
-# "Test Cases\\01 - lol easy.jpg", 0) #done
-# "Barcode.jpg", 0)
-# "Test Cases\\02 - still easy.jpg", 0) #done
-# "Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg", 0)#done
-# "Test Cases\\04 - fen el nadara.jpg", 0) #done
-# "Test Cases\\05 - meen taffa el nour!!!.jpg", 0)#done
-# "Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg", 0)#done
-# "Test Cases\\07 - mal7 w felfel.jpg", 0) #done
-# "Test Cases\\08 - compresso espresso.jpg", 0) #done
-# "Test Cases\\09 - e3del el soora ya3ammm.jpg", 0)#done
-# "Test Cases\\10 - wen el kontraastttt.jpg", 0)#done
-# "Test Cases\\11 - bayza 5ales di bsara7a.jpg", 0) #done
-# "Barcode_Noise_3.jpg", 0)
-# Load the image in grayscale
-image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg"
+# --------------------------------------------MAIN--------------------------------
+# Uncomment the needed Test Case
+# image_path ="Test Cases\\01 - lol easy.jpg"
+# image_path ="Test Cases\\02 - still easy.jpg"
+# image_path ="Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg"
+# image_path ="Test Cases\\04 - fen el nadara.jpg"
+# image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg"
+# image_path ="Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg"
+# image_path ="Test Cases\\07 - mal7 w felfel.jpg"
+# image_path ="Test Cases\\08 - compresso espresso.jpg"
+# image_path ="Test Cases\\09 - e3del el soora ya3ammm.jpg"
+# image_path ="Test Cases\\10 - wen el kontraastttt.jpg"
+image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
 img = cv2.imread(image_path, 0)
 
 
@@ -630,7 +624,8 @@ is_salt_pepper =detect_salt_and_pepper_noise(thresh)
 
 # if is_salt_pepper:
 #     is_salt_pepper= detect_salt_and_pepper_noise(img)
-print("salmaaa")
+# print("salmaaa")
+print(img.shape)
 print(is_salt_pepper)
 if is_salt_pepper:
     # is_salt_pepper =detect_salt_and_pepper_noise(is_salt_pepper)
@@ -662,7 +657,7 @@ if is_salt_pepper:
             cv2.imshow("Frequency Domain", freqimg)
 
         elif results['filter_type'] == "Low-pass":
-            freqimg = try_lowpass(dft_img, 20, gaussian=False, keep_dc=True)
+            freqimg = try_lowpass(dft_img, 150, gaussian=True)
             # If try_highpass produces complex numbers, extract magnitude
             freqimg = np.abs(freqimg)
             # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
