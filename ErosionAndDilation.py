@@ -496,7 +496,7 @@ def detect_barcode(image):
         # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
         # Crop the barcode 
-        cropped_barcode = image[y:y+height, x:x+width] 
+        # cropped_barcode = image[y:y+height, x:x+width] 
 
         
         pts1 = np.float32([[bx, by], [ax, ay], [cx, cy], [dx, dy]])
@@ -519,10 +519,10 @@ def detect_barcode(image):
         # cv2.imshow("Image", image) 
         # cv2.imshow('Cropped Barcode', cropped_barcode) 
         cv2.imshow("Warp", img_prespective) 
-
+        cv2.imshow("Original", image)
         uniform_image = make_columns_uniform(img_prespective)
         cv2.imshow("Uniform Image", uniform_image)
-        
+        cv2.imwrite("UniformImage.jpg", uniform_image)
     cv2.waitKey(0)
 
 def sharpen_image(image):
@@ -603,17 +603,17 @@ def applydynamic_threshold(image, avg_intensity):
 
 # --------------------------------------------MAIN--------------------------------
 # Uncomment the needed Test Case
-# image_path ="Test Cases\\01 - lol easy.jpg"
-# image_path ="Test Cases\\02 - still easy.jpg"
-# image_path ="Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg"
-# image_path ="Test Cases\\04 - fen el nadara.jpg"
-# image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg"
-# image_path ="Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg"
-# image_path ="Test Cases\\07 - mal7 w felfel.jpg"
-# image_path ="Test Cases\\08 - compresso espresso.jpg"
-# image_path ="Test Cases\\09 - e3del el soora ya3ammm.jpg"
-# image_path ="Test Cases\\10 - wen el kontraastttt.jpg"
-image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg"
+# image_path ="Test Cases\\01 - lol easy.jpg" #Done
+# image_path ="Test Cases\\02 - still easy.jpg" #Done
+# image_path ="Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg" #Done
+image_path ="Test Cases\\04 - fen el nadara.jpg" #Decoder Can't detect the barcode
+# image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg" #Decoder Can't detect the barcode
+# image_path ="Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg" #Decoder Can't detect the barcode
+# image_path ="Test Cases\\07 - mal7 w felfel.jpg" #Decoder Can't detect the barcode
+# image_path ="Test Cases\\08 - compresso espresso.jpg" #Decoder Can't detect the barcode
+# image_path ="Test Cases\\09 - e3del el soora ya3ammm.jpg" #Decoder Can't detect the barcode
+# image_path ="Test Cases\\10 - wen el kontraastttt.jpg" #Decoder Can't detect the barcode
+# image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg" #Decoder Can't detect the barcode
 img = cv2.imread(image_path, 0)
 
 
