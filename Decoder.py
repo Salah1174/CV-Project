@@ -47,6 +47,7 @@ def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
             # print(f"current pixel is : {current_pixel}")
         else:
             bar_widths.append((current_pixel, current_width))
+            print(f"current width is : {current_width}")
             current_width = 1
             current_pixel = pixel
 
@@ -55,8 +56,11 @@ def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
 
     # narrow_bar_size = min(width for _, width in bar_widths)
     # wide_bar_size = 2* narrow_bar_size
-    # wide_bar_size = min(width for _, width in bar_widths if width > narrow_bar_size)
-    print(f"Detected wide bar size: {wide_bar_size}")
+    max_bar_size = max(width for _, width in bar_widths if width > narrow_bar_size)
+    average = sum(width for _, width in bar_widths) / len(bar_widths)
+    print(f"average is {average}")
+    # print(f"Detected narrow bar size: {narrow_bar_size}")
+    # print(f"Detected wide bar size: {wide_bar_size}")
     normalized_pixels = []
     
     for pixel, width in bar_widths:
@@ -65,9 +69,16 @@ def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
         # elif narrow_bar_size < width <= wide_bar_size:
         #     normalized_pixels.append((pixel, wide_bar_size))
         elif width > narrow_bar_size:
-            if width % wide_bar_size == 0:
-                normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
-            else:
+            if width <= average:
+                normalized_pixels.append((pixel, narrow_bar_size))
+            elif average < width :
+                normalized_pixels.extend([(pixel, 2*narrow_bar_size)])
+            #     normalized_pixels.append((pixel, 2*narrow_bar_size))  
+            # elif wide_bar_size < width < max_bar_size:
+            #     normalized_pixels.append((pixel, 2*narrow_bar_size))
+            # elif width % wide_bar_size == 0:
+            #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
+            elif width >= narrow_bar_size + wide_bar_size:
                 normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
                 normalized_pixels.append((pixel, narrow_bar_size))
             # normalized_pixels.append((pixel, narrow_bar_size))
@@ -144,6 +155,7 @@ def decode_barcode():
     print(f"Detected wide bar size: {wide_bar_size}")
     
     # narrow_bar_size, wide_bar_size = detect_bar_sizes(pixels)
+    # pixels = detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size)
     pixels = detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size)
     # print(f"Detected narrow bar size: {narrow_bar_size}")
     # print(f"Detected wide bar size: {wide_bar_size}")
@@ -170,10 +182,19 @@ def decode_barcode():
         pixel_index += 1
         if count == narrow_bar_size: 
             current_digit_widths += NARROW
-        else:
+        elif count == wide_bar_size:
             current_digit_widths += WIDE
+        else:
+            if count == narrow_bar_size + wide_bar_size:
+                current_digit_widths += NARROW
+                current_digit_widths += WIDE
+            elif count == (wide_bar_size *2):    
+                current_digit_widths += (2*WIDE)
+            else:
+                print("Invalid barcode")
+                break
          
-        print(current_digit_widths)
+        # print(current_digit_widths)
         if current_digit_widths in code11_widths:
             digits.append(code11_widths[current_digit_widths])
             current_digit_widths = ""
