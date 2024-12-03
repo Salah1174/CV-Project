@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
+import Decoder 
 
 def AdaptiveGaussian(img):
 	
@@ -330,7 +331,7 @@ def noiseReductionSaltAndPeper(image_path):
 
 def make_columns_uniform(image):
     height, width = image.shape
-    num_parts = 6
+    num_parts = 10
     part_height = height // num_parts
     
     for x in range(width):
@@ -345,7 +346,7 @@ def make_columns_uniform(image):
             unique, counts = np.unique(part_pixels, return_counts=True)
             
             for idx, item in enumerate(unique):
-                if item >= 128:
+                if item >= 150:
                     unique[idx] = 255
                 else:
                     unique[idx] = 0
@@ -480,17 +481,17 @@ def detect_barcode(image):
         heightB = np.sqrt(((bx - cx) ** 2) + ((by - cy) ** 2))
         height = max(int(heightA), int(heightB))
         
-        print(width, height)
-        print (x, y, w, h)
-        print(ax, ay, bx, by, cx, cy, dx, dy)
-        if x < border_threshold:
-            x = 0
-        if x + w > width - border_threshold:
-            w = width - x
-        if y < border_threshold:
-            y = 0
-        if y + h > height - border_threshold:
-            h = height - y
+        # print(width, height)
+        # print (x, y, w, h)
+        # print(ax, ay, bx, by, cx, cy, dx, dy)
+        # if x < border_threshold:
+        #     x = 0
+        # if x + w > width - border_threshold:
+        #     w = width - x
+        # if y < border_threshold:
+        #     y = 0
+        # if y + h > height - border_threshold:
+        #     h = height - y
 
         # Draw the extended bounding box
         # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
@@ -501,7 +502,7 @@ def detect_barcode(image):
         
         pts1 = np.float32([[bx, by], [ax, ay], [cx, cy], [dx, dy]])
         pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
-
+        
         matrix = cv2.getPerspectiveTransform(pts1, pts2)
         img_prespective = cv2.warpPerspective(image, matrix, (width, height))
         # cv2.circle(image, (ax,ay), 5, (0,0,255), 20)
@@ -523,7 +524,9 @@ def detect_barcode(image):
         uniform_image = make_columns_uniform(img_prespective)
         cv2.imshow("Uniform Image", uniform_image)
         cv2.imwrite("UniformImage.jpg", uniform_image)
-    cv2.waitKey(0)
+        decoded_digits = Decoder.decode_barcode()
+        print(decoded_digits)
+        cv2.waitKey(0)
 
 def sharpen_image(image):
     # Define the sharpening kernel
@@ -606,14 +609,14 @@ def applydynamic_threshold(image, avg_intensity):
 # image_path ="Test Cases\\01 - lol easy.jpg" #Done
 # image_path ="Test Cases\\02 - still easy.jpg" #Done
 # image_path ="Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg" #Done
-image_path ="Test Cases\\04 - fen el nadara.jpg" #Decoder Can't detect the barcode
+# image_path ="Test Cases\\04 - fen el nadara.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\07 - mal7 w felfel.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\08 - compresso espresso.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\09 - e3del el soora ya3ammm.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\10 - wen el kontraastttt.jpg" #Decoder Can't detect the barcode
-# image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg" #Decoder Can't detect the barcode
+image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg" #Decoder Can't detect the barcode
 img = cv2.imread(image_path, 0)
 
 
@@ -676,8 +679,11 @@ if is_salt_pepper:
         dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
         detect_barcode(dil_img)
 else:
+    print("No Salt and Pepper Noise")
     result =increase_contrast(img)
     detect_barcode(result)
+    
+
 
         
 
