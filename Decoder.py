@@ -146,8 +146,8 @@ def decode_barcode():
     # Convert to string of pixels in order to loop over it
     pixels = ''.join(mean.astype(np.uint8).astype(str))
     print(pixels)
-    for i in range(0, len(pixels), 8):
-        print(pixels[i:i+8])
+    # for i in range(0, len(pixels), 8):
+    #     print(pixels[i:i+8])
     # Need to figure out how many pixels represent a narrow bar
     narrow_bar_size = 0
     for pixel in pixels:

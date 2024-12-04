@@ -408,7 +408,6 @@ def detect_barcode(image):
     # _, thresh = cv2.threshold(blurred, 50, 255, cv2.THRESH_BINARY)
 
     #2---->blur before sobel
-
     blurred = cv2.GaussianBlur(image, (5, 5),0)
     # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
     gradX = cv2.Sobel(blurred, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
@@ -428,6 +427,7 @@ def detect_barcode(image):
     # blur and threshold the image 
     blurred = cv2.blur(gradient, (9, 9))
     (_, thresh) = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
+    cv2.imshow("thresholded",thresh)
 
 
     # construct a closing kernel and apply it to the thresholded image
@@ -606,7 +606,7 @@ def applydynamic_threshold(image, avg_intensity):
 
 # --------------------------------------------MAIN--------------------------------
 # Uncomment the needed Test Case
-image_path ="Test Cases\\01 - lol easy.jpg" #Done
+# image_path ="Test Cases\\01 - lol easy.jpg" #Done
 # image_path ="Test Cases\\02 - still easy.jpg" #Done
 # image_path ="Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg" #Done
 # image_path ="Test Cases\\04 - fen el nadara.jpg" #Decoder Can't detect the barcode
@@ -616,7 +616,7 @@ image_path ="Test Cases\\01 - lol easy.jpg" #Done
 # image_path ="Test Cases\\08 - compresso espresso.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\09 - e3del el soora ya3ammm.jpg" #Decoder Can't detect the barcode
 # image_path ="Test Cases\\10 - wen el kontraastttt.jpg" #Decoder Can't detect the barcode
-# image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg" #Decoder Can't detect the barcode
+image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg" #Decoder Can't detect the barcode
 img = cv2.imread(image_path, 0)
 
 
@@ -685,7 +685,19 @@ if is_salt_pepper:
         detect_barcode(erode_img)
 else:
     print("No Salt and Pepper Noise")
-    result =increase_contrast(img)
+    
+    avg_intensity =calc_avg_intensity(img)
+    brightness_threshold = 250 
+    
+    if avg_intensity < brightness_threshold:
+        thresholded_image = apply_dynamic_threshold(img,avg_intensity)
+        cv2.imshow("Thresholded Image", thresholded_image)
+        kernel = np.ones((3, 3), np.uint8)
+        dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
+        erode_img = cv2.erode(dil_img, kernel, iterations=1)
+        result =increase_contrast(erode_img)
+    else: 
+        result =increase_contrast(img)
     detect_barcode(result)
     
 
