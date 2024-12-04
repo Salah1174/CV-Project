@@ -642,6 +642,7 @@ if is_salt_pepper:
     print("Peak distances:", results['peak_distances'])
     print("Are distances approximately equal?", results['are_distances_equal'])
     
+    
     if are_peaks_equally_spaced:
         avg_int2 = calc_avg_intensity(img)
         dft_img = np.fft.fft2(img)
@@ -675,9 +676,13 @@ if is_salt_pepper:
     else:
         avg_intensity =calc_avg_intensity(img)
         thresholded_image = apply_dynamic_threshold(img,avg_intensity)
+        cv2.imshow("Thresholded Image", thresholded_image)
         kernel = np.ones((3, 3), np.uint8)
         dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
-        detect_barcode(dil_img)
+        erode_img = cv2.erode(dil_img, kernel, iterations=1)
+        
+        cv2.imshow("Dilated Image", erode_img)
+        detect_barcode(erode_img)
 else:
     print("No Salt and Pepper Noise")
     result =increase_contrast(img)

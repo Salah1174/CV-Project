@@ -72,15 +72,23 @@ def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
             if width <= average:
                 normalized_pixels.append((pixel, narrow_bar_size))
             elif average < width :
-                normalized_pixels.extend([(pixel, 2*narrow_bar_size)])
+                # if width % wide_bar_size == 0:
+                #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
+                # if width == (2*wide_bar_size):
+                #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
+                # if width >= narrow_bar_size + wide_bar_size:
+                #     normalized_pixels.extend([(pixel, wide_bar_size)] ) #* ((width - narrow_bar_size) // wide_bar_size)
+                #     normalized_pixels.append((pixel, narrow_bar_size*((width - wide_bar_size) // narrow_bar_size)))
+                # else:
+                    normalized_pixels.extend([(pixel, wide_bar_size)])
             #     normalized_pixels.append((pixel, 2*narrow_bar_size))  
             # elif wide_bar_size < width < max_bar_size:
             #     normalized_pixels.append((pixel, 2*narrow_bar_size))
             # elif width % wide_bar_size == 0:
             #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
-            elif width >= narrow_bar_size + wide_bar_size:
-                normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
-                normalized_pixels.append((pixel, narrow_bar_size))
+            # elif width >= narrow_bar_size + wide_bar_size:
+            #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
+            #     normalized_pixels.append((pixel, narrow_bar_size))
             # normalized_pixels.append((pixel, narrow_bar_size))
             # normalized_pixels.append((pixel, narrow_bar_size
             
@@ -184,17 +192,27 @@ def decode_barcode():
             current_digit_widths += NARROW
         elif count == wide_bar_size:
             current_digit_widths += WIDE
-        else:
-            if count == narrow_bar_size + wide_bar_size:
-                current_digit_widths += NARROW
-                current_digit_widths += WIDE
-            elif count == (wide_bar_size *2):    
-                current_digit_widths += (2*WIDE)
-            else:
-                print("Invalid barcode")
-                break
+        # else:
+        #     if count == narrow_bar_size + wide_bar_size:
+        #         if current_digit_widths[-1] == NARROW:
+        #             current_digit_widths += NARROW
+        #             current_digit_widths += WIDE
+        #         elif current_digit_widths[-1] == WIDE:
+        #             current_digit_widths += WIDE
+        #             current_digit_widths += NARROW
+                
+        #     elif count > narrow_bar_size + wide_bar_size:
+        #             current_digit_widths += WIDE
+        #             current_digit_widths += str(int(NARROW)*((count- wide_bar_size)//narrow_bar_size))
+        #         # if count == (wide_bar_size *2):    
+        #         #     current_digit_widths += (2*WIDE)
+        #         # else :
+        #             # current_digit_widths += str((count / narrow_bar_size)*int(NARROW))
+            # else:
+            #     print("Invalid barcode")
+            #     break
          
-        # print(current_digit_widths)
+        print(current_digit_widths)
         if current_digit_widths in code11_widths:
             digits.append(code11_widths[current_digit_widths])
             current_digit_widths = ""
