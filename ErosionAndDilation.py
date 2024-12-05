@@ -6,6 +6,165 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import Decoder 
 
+def preprocessing(image):
+    """
+    Preprocess the image to find the largest contour's bounding box.
+    
+    Args:
+        image (numpy.ndarray): Input image.
+        
+    Returns:
+        tuple: Rotated bounding box of the largest contour or None if no valid contour is found.
+    """
+    # Apply Gaussian Blur
+    blurred = cv2.GaussianBlur(image, (5, 5), 0)
+    
+    # Compute Scharr gradient in x and y directions
+    gradX = cv2.Sobel(blurred, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
+    gradY = cv2.Sobel(blurred, ddepth=cv2.CV_32F, dx=0, dy=1, ksize=-1)
+    
+    # Compute the gradient magnitude
+    gradient = cv2.subtract(gradX, gradY)
+    gradient = cv2.convertScaleAbs(gradient)
+    
+    # Blur and threshold the gradient image
+    blurred = cv2.blur(gradient, (9, 9))
+    cv2.imshow("blurred",blurred)
+    _, thresh = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
+    cv2.imshow("thresh",thresh)
+    
+    # Perform morphological closing to fill gaps
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
+    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    
+    # Erode and dilate to refine regions
+    closed = cv2.erode(closed, None, iterations=4)
+    closed = cv2.dilate(closed, None, iterations=4)
+    # Ensure the image is grayscale
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Find contours
+        contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find the largest contour
+        largest_contour = None
+        if contours:
+            largest_contour = max(contours, key=cv2.contourArea)
+
+        return largest_contour
+    # Ensure single-channel image for findContours
+    else:
+        # closed = cv2.cvtColor(closed, cv2.COLOR_BGR2GRAY)
+
+        # Find contours in the processed image
+        cnts, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # largest_contour,_ =biggestContour(cnts)
+        cv2.imshow("closed",closed)
+        # Check if any contours were found
+        if len(cnts) == 0:
+            return None
+        
+        # Sort contours by area and keep the largest one
+        largest_contour = sorted(cnts, key = cv2.contourArea, reverse = True)[0] 
+    return largest_contour
+
+    # Ensure the largest contour is valid
+
+def warp(image,largest_contour):
+    if cv2.contourArea(largest_contour) > 0:
+        # Compute the rotated bounding box of the largest contour
+        rect = cv2.minAreaRect(largest_contour)
+        # return rect
+    box = np.int32(cv2.boxPoints(rect))
+    box = reorder(box)
+    # cv2.drawContours(image, [box], -1, (0, 255, 0), 3) 
+    cv2.imshow("image",image)
+    
+    
+    # Coordinates of each corner
+    ax = box.item(0)
+    ay = box.item(1)
+
+    bx = box.item(2)
+    by = box.item(3)
+
+    cx = box.item(4)
+    cy = box.item(5)
+
+    dx = box.item(6)
+    dy = box.item(7)
+
+    # box coordinates
+    x, y, w, h = cv2.boundingRect(box) 
+    
+    # print(box)
+    border_threshold = 10
+    # height, width = image.shape[:2]
+    widthA = np.sqrt(((cx - dx) ** 2) + ((cy - dy) ** 2))
+    widthB = np.sqrt(((ax - bx) ** 2) + ((ay - by) ** 2))
+    width = max(int(widthA), int(widthB))
+    
+    heightA = np.sqrt(((ax - dx) ** 2) + ((ay - dy) ** 2))
+    heightB = np.sqrt(((bx - cx) ** 2) + ((by - cy) ** 2))
+    height = max(int(heightA), int(heightB))
+    
+    print(width, height)
+    print (x, y, w, h)
+    print(ax, ay, bx, by, cx, cy, dx, dy)
+    if x < border_threshold:
+        x = 0
+    if x + w > width - border_threshold:
+        w = width - x
+    if y < border_threshold:
+        y = 0
+    if y + h > height - border_threshold:
+        h = height - y
+
+    # Draw the extended bounding box
+    # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+    
+
+    # Crop the barcode 
+    cropped_barcode = image[y:y+height, x:x+width] 
+    # cv2.imshow("cropped",cropped_barcode)
+
+    
+    pts1 = np.float32([[bx, by], [ax, ay], [cx, cy], [dx, dy]])
+    pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+
+    matrix = cv2.getPerspectiveTransform(pts1, pts2)
+    img_prespective = cv2.warpPerspective(image, matrix, (width, height))
+    return img_prespective
+
+def detect_barcode2(image):   
+    cv2.imshow("Original", image)
+    
+    largest_contour =preprocessing(image)
+
+    # barcode_contour =find_barcode_contour(closed1)
+    # cropped =warp_barcode(image,barcode_contour)
+    img_perspective=warp(image,largest_contour)
+    
+    uniform_image = make_columns_uniform(img_perspective)
+    # center_image =center_image_on_blank(uniform_image)
+    # largest_contour2 =preprocessing(center_image)
+    # img_perspective2 =warp(center_image,largest_contour2)
+    # uniform_image = make_columns_uniform(img_perspective)
+    # barcode_contour =find_barcode_contour(closed2)
+    # cropped =warp_barcode(center_image,barcode_contour)
+    # img_perspective2 =warp_barcode(center_image,largest_contour2)
+    cv2.imshow("img_perspective", img_perspective)
+    cv2.imshow("uniform_image", uniform_image)
+    # cv2.imshow("center_image", center_image)
+    # cv2.imshow("cropped =", img_perspective2 )
+    # cv2.imshow("img_perspective2", img_perspective2)
+
+    
+    cv2.imwrite("UniformImage.jpg", uniform_image)
+    decoded_digits = Decoder.decode_barcode()
+    print(decoded_digits)
+
 def AdaptiveGaussian(img):
 	
     # path to input image is specified and
@@ -251,8 +410,8 @@ def try_lowpass(dft_img, limit, gaussian: bool = False):
 
 
 # if are_peaks_equally_spaced returns False
-def noiseReductionSaltAndPeper(image_path):
-    img = cv2.imread(image_path, 0)
+def noiseReductionSaltAndPeper(img):
+    # img = cv2.imread(image_path, 0)
 
     if img is None:
         raise ValueError("Image not found.")
@@ -657,7 +816,7 @@ if is_salt_pepper:
             if len(freqimg.shape) > 2:
                 freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
             contrast =increase_contrast(freqimg)
-            detect_barcode(contrast)
+            detect_barcode2(contrast)
             cv2.imshow("Frequency Domain", freqimg)
 
         elif results['filter_type'] == "Low-pass":
@@ -671,7 +830,7 @@ if is_salt_pepper:
             if len(freqimg.shape) > 2:
                 freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
             contrast = increase_contrast(freqimg)
-            detect_barcode(contrast)
+            detect_barcode2(contrast)
             cv2.imshow("Frequency Domain", freqimg)
     else:
         avg_intensity =calc_avg_intensity(img)
@@ -682,10 +841,9 @@ if is_salt_pepper:
         erode_img = cv2.erode(dil_img, kernel, iterations=1)
         
         cv2.imshow("Dilated Image", erode_img)
-        detect_barcode(erode_img)
+        detect_barcode2(erode_img)
 else:
     print("No Salt and Pepper Noise")
-    
     avg_intensity =calc_avg_intensity(img)
     brightness_threshold = 250 
     
@@ -695,10 +853,12 @@ else:
         kernel = np.ones((3, 3), np.uint8)
         dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
         erode_img = cv2.erode(dil_img, kernel, iterations=1)
+        # result1 =noiseReductionSaltAndPeper(erode_img)
         result =increase_contrast(erode_img)
     else: 
+        # result1 =noiseReductionSaltAndPeper(img)
         result =increase_contrast(img)
-    detect_barcode(result)
+    detect_barcode2(result)
     
 
 
