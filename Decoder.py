@@ -117,6 +117,11 @@ def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
 #     narrow_bar_size = min(bar_widths)
 #     wide_bar_size = max(w for w in bar_widths if w > narrow_bar_size)
 #     return narrow_bar_size, wide_bar_size
+def remove_initial_whites(pixels):
+    first_black_index = pixels.find('1')
+    if first_black_index == -1:
+        return "", 0  # No black pixels found
+    return pixels[first_black_index:] ,first_black_index
 
 def decode_barcode():
     # 0 means narrow, 1 means wide
@@ -149,6 +154,38 @@ def decode_barcode():
     # for i in range(0, len(pixels), 8):
     #     print(pixels[i:i+8])
     # Need to figure out how many pixels represent a narrow bar
+    pixels , ignore= remove_initial_whites(pixels)
+    image_modified = img[ignore:, ignore:]
+    cv.imwrite("RestoredImage.jpg", image_modified)
+    cv.imshow("Restored Image", image_modified)
+#     # _, binary_img = cv.threshold(img, 127, 255, cv.THRESH_BINARY)
+
+#     # # Convert to a binary string for each row
+#     # binary_str_rows = [''.join(map(str, (row // 255).astype(np.uint8))) for row in binary_img]
+
+#     # # Remove initial white pixels from each row
+#     # processed_rows = []
+#     # for row in binary_str_rows:
+#     #     remaining_row = remove_initial_whites(row)
+#     #     processed_rows.append(remaining_row)
+
+# # Find the maximum length of the processed rows to reshape correctly
+#     max_length = max(len(row) for row in processed_rows)
+
+#     # Pad rows to the maximum length with white pixels (if needed)
+#     padded_rows = [row.ljust(max_length, '0') for row in processed_rows]
+
+#     # Convert the padded rows back to a 2D NumPy array
+#     processed_img = np.array([[int(pixel) for pixel in row] for row in padded_rows], dtype=np.uint8) * 255
+
+#     # Save the restored image
+#     cv.imwrite("RestoredImage.jpg", processed_img)
+
+#     # Display the restored image (optional)
+#     cv.imshow("Restored Image", processed_img)
+
+
+
     narrow_bar_size = 0
     for pixel in pixels:
         if pixel == "1":
