@@ -1,41 +1,6 @@
 import numpy as np
 import cv2 as cv
 
-
-# def adjust_bar_sizes(pixels, narrow_bar_size, wide_bar_size):
-#     max_wide_size = wide_bar_size * 1.5   #  Allow for slightly larger wide bars
-#     bar_widths = []
-
-#     current_width = 0
-#     for pixel in pixels:
-#         if pixel == "1":
-#             if current_width > 0:
-#                 current_width += 1
-#                 bar_widths.append(current_width)
-            
-#             current_width = 0
-#             current_width += 1
-            
-#         else:
-#             if current_width > 0:
-#                current_width += 1
-#                bar_widths.append(current_width)
-#             # bar_widths.append(current_width)
-#             current_width = 0
-#             current_width += 1
-            
-
-#     if current_width > 0:
-#         bar_widths.append(current_width)
-
-#     narrow_bars = [w for w in bar_widths if w <= narrow_bar_size]
-#     wide_bars = [w for w in bar_widths if narrow_bar_size < w <= max_wide_size]
-
-#     if wide_bars:
-#         wide_bar_size = int(np.mean(wide_bars))
-
-#     return narrow_bars, wide_bars
-
 def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
     bar_widths = []
     current_width = 1
@@ -47,7 +12,7 @@ def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
             # print(f"current pixel is : {current_pixel}")
         else:
             bar_widths.append((current_pixel, current_width))
-            print(f"current width is : {current_width}")
+            # print(f"current width is : {current_width}")
             current_width = 1
             current_pixel = pixel
 
@@ -56,72 +21,31 @@ def detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size,):
 
     # narrow_bar_size = min(width for _, width in bar_widths)
     # wide_bar_size = 2* narrow_bar_size
-    max_bar_size = max(width for _, width in bar_widths if width > narrow_bar_size)
+    # max_bar_size = max(width for _, width in bar_widths if width > narrow_bar_size)
     average = sum(width for _, width in bar_widths) / len(bar_widths)
-    print(f"average is {average}")
-    # print(f"Detected narrow bar size: {narrow_bar_size}")
-    # print(f"Detected wide bar size: {wide_bar_size}")
+    # print(f"average is {average}")
     normalized_pixels = []
     
     for pixel, width in bar_widths:
         if width <= narrow_bar_size:
             normalized_pixels.append((pixel, narrow_bar_size))
-        # elif narrow_bar_size < width <= wide_bar_size:
-        #     normalized_pixels.append((pixel, wide_bar_size))
         elif width > narrow_bar_size:
             if width <= average:
                 normalized_pixels.append((pixel, narrow_bar_size))
             elif average < width :
-                # if width % wide_bar_size == 0:
-                #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
-                # if width == (2*wide_bar_size):
-                #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
-                # if width >= narrow_bar_size + wide_bar_size:
-                #     normalized_pixels.extend([(pixel, wide_bar_size)] ) #* ((width - narrow_bar_size) // wide_bar_size)
-                #     normalized_pixels.append((pixel, narrow_bar_size*((width - wide_bar_size) // narrow_bar_size)))
-                # else:
                     normalized_pixels.extend([(pixel, wide_bar_size)])
-            #     normalized_pixels.append((pixel, 2*narrow_bar_size))  
-            # elif wide_bar_size < width < max_bar_size:
-            #     normalized_pixels.append((pixel, 2*narrow_bar_size))
-            # elif width % wide_bar_size == 0:
-            #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
-            # elif width >= narrow_bar_size + wide_bar_size:
-            #     normalized_pixels.extend([(pixel, (2*narrow_bar_size))] * (width // wide_bar_size))
-            #     normalized_pixels.append((pixel, narrow_bar_size))
-            # normalized_pixels.append((pixel, narrow_bar_size))
-            # normalized_pixels.append((pixel, narrow_bar_size
+            else:
+                print("Invalid barcode")   
+                break
+        else:
+            print("Invalid barcode")
+            break
             
     normalized_pixel_str = ''.join(
-        ('1' * width) if pixel == '1' else ('0' * width) for pixel, width in normalized_pixels
-    )
+        ('1' * width) if pixel == '1' else ('0' * width) for pixel, width in normalized_pixels)
 
     return normalized_pixel_str
     
-# def detect_bar_sizes(pixels):
-#     bar_widths = []
-#     current_width = 1
-#     current_pixel = pixels[0]
-
-#     for pixel in pixels[1:]:
-#         if pixel == current_pixel:
-#             current_width += 1
-#         else:
-#             bar_widths.append(current_width)
-#             current_width = 1
-#             current_pixel = pixel
-
-#     if current_width > 0:
-#         bar_widths.append(current_width)
-
-#     narrow_bar_size = min(bar_widths)
-#     wide_bar_size = max(w for w in bar_widths if w > narrow_bar_size)
-#     return narrow_bar_size, wide_bar_size
-def remove_initial_whites(pixels):
-    first_black_index = pixels.find('1')
-    if first_black_index == -1:
-        return "", 0  # No black pixels found
-    return pixels[first_black_index:] ,first_black_index
 
 def decode_barcode():
     # 0 means narrow, 1 means wide
@@ -141,7 +65,7 @@ def decode_barcode():
         "00001": "0",
         "00100": "-",
     }
-    img = cv.imread("UniformImage.jpg", cv.IMREAD_GRAYSCALE) 
+    img = cv.imread("FinalImage.jpg", cv.IMREAD_GRAYSCALE) 
     # Get the average of each column in your image
     mean = img.mean(axis=0)
     # print(mean)
@@ -150,62 +74,24 @@ def decode_barcode():
     mean[mean > 128] = 0
     # Convert to string of pixels in order to loop over it
     pixels = ''.join(mean.astype(np.uint8).astype(str))
-    print(pixels)
-    # for i in range(0, len(pixels), 8):
-    #     print(pixels[i:i+8])
+    # print(pixels)
+    
     # Need to figure out how many pixels represent a narrow bar
-    pixels , ignore= remove_initial_whites(pixels)
-    image_modified = img[ignore:, ignore:]
-    cv.imwrite("RestoredImage.jpg", image_modified)
-    cv.imshow("Restored Image", image_modified)
-#     # _, binary_img = cv.threshold(img, 127, 255, cv.THRESH_BINARY)
-
-#     # # Convert to a binary string for each row
-#     # binary_str_rows = [''.join(map(str, (row // 255).astype(np.uint8))) for row in binary_img]
-
-#     # # Remove initial white pixels from each row
-#     # processed_rows = []
-#     # for row in binary_str_rows:
-#     #     remaining_row = remove_initial_whites(row)
-#     #     processed_rows.append(remaining_row)
-
-# # Find the maximum length of the processed rows to reshape correctly
-#     max_length = max(len(row) for row in processed_rows)
-
-#     # Pad rows to the maximum length with white pixels (if needed)
-#     padded_rows = [row.ljust(max_length, '0') for row in processed_rows]
-
-#     # Convert the padded rows back to a 2D NumPy array
-#     processed_img = np.array([[int(pixel) for pixel in row] for row in padded_rows], dtype=np.uint8) * 255
-
-#     # Save the restored image
-#     cv.imwrite("RestoredImage.jpg", processed_img)
-
-#     # Display the restored image (optional)
-#     cv.imshow("Restored Image", processed_img)
-
-
-
     narrow_bar_size = 0
     for pixel in pixels:
         if pixel == "1":
             narrow_bar_size += 1
-            print(narrow_bar_size)
+            # print(narrow_bar_size)
         else:
             break
     
     wide_bar_size = narrow_bar_size * 2
     
-    print(f"Detected narrow bar size: {narrow_bar_size}")
-    print(f"Detected wide bar size: {wide_bar_size}")
-    
-    # narrow_bar_size, wide_bar_size = detect_bar_sizes(pixels)
-    # pixels = detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size)
-    pixels = detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size)
     # print(f"Detected narrow bar size: {narrow_bar_size}")
     # print(f"Detected wide bar size: {wide_bar_size}")
     
-    print(f"Detected pixels: {pixels}")
+    pixels = detect_and_normalize_bar_sizes(pixels, narrow_bar_size, wide_bar_size)
+    # print(f"Detected pixels: {pixels}")
 
     digits = []
     pixel_index = 0
@@ -225,33 +111,13 @@ def decode_barcode():
         except:
             pass
         pixel_index += 1
-        if count == narrow_bar_size: 
-            current_digit_widths += NARROW
-        elif count == wide_bar_size:
-            current_digit_widths += WIDE
-        # else:
-        #     if count == narrow_bar_size + wide_bar_size:
-        #         if current_digit_widths[-1] == NARROW:
-        #             current_digit_widths += NARROW
-        #             current_digit_widths += WIDE
-        #         elif current_digit_widths[-1] == WIDE:
-        #             current_digit_widths += WIDE
-        #             current_digit_widths += NARROW
-                
-        #     elif count > narrow_bar_size + wide_bar_size:
-        #             current_digit_widths += WIDE
-        #             current_digit_widths += str(int(NARROW)*((count- wide_bar_size)//narrow_bar_size))
-        #         # if count == (wide_bar_size *2):    
-        #         #     current_digit_widths += (2*WIDE)
-        #         # else :
-        #             # current_digit_widths += str((count / narrow_bar_size)*int(NARROW))
-            # else:
-            #     print("Invalid barcode")
-            #     break
-         
-        print(current_digit_widths)
+        current_digit_widths += NARROW if count == narrow_bar_size else WIDE
+        # print(current_digit_widths)
         if current_digit_widths in code11_widths:
             digits.append(code11_widths[current_digit_widths])
             current_digit_widths = ""
             skip_next = True  # Next iteration will be a separator, so skip it
+    print("--------------------------------------------")
+    print("Detected barcode is:")
+    print("--------------------")
     print(digits)
