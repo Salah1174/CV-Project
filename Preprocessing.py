@@ -238,8 +238,8 @@ def try_lowpass(dft_img, limit, gaussian: bool = False):
 
 
 # if are_peaks_equally_spaced returns False
-def noiseReductionSaltAndPeper(image_path):
-    img = cv2.imread(image_path, 0)
+def noiseReductionSaltAndPeper(img):
+    # img = cv2.imread(image_path, 0)
 
     if img is None:
         raise ValueError("Image not found.")
