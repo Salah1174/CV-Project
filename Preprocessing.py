@@ -1,24 +1,11 @@
-# Python program to demonstrate erosion and
-# dilation of images.
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
-import Decoder 
+import BarCodeExtraction 
 
 def AdaptiveGaussian(img):
-	
-    # path to input image is specified and
-    # image is loaded with imread command
-    # image1 = cv2.imread(image_path)
-
-    # cv2.cvtColor is applied over the
-    # image input with applied parameters
-    # to convert the image in grayscale
-    # img = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
-
-    # applying different thresholding
-    # techniques on the input image
+    #thresholding
     thresh1 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                     cv2.THRESH_BINARY, 31, 5)
 
@@ -286,18 +273,6 @@ def noiseReductionSaltAndPeper(image_path):
         bilateral_filt_dil, vertical_kernel_5x5, iterations=1
     )
 
-    # img_median = cv2.medianBlur(img_erosion, 3)
-
-    # img_dilation_2 = cv2.dilate(img_median, vertical_kernel, iterations=1)
-    # img_erosion_2 = cv2.erode(img_dilation_2, vertical_kernel, iterations=1)
-    # img_median_2 = cv2.medianBlur(img_erosion_2, 3)
-
-    # img_dst_dil = enhance_barcode(img_dilation_2)
-
-    # img_dst_ero = enhance_barcode(img_erosion_2)
-
-    # img_dst_median = enhance_barcode(img_median)
-
     # cv2.imshow("Input", img)
     # cv2.imshow('Dilation', img_dilation)
     # cv2.imshow('Erosion', img_erosion)
@@ -315,218 +290,10 @@ def noiseReductionSaltAndPeper(image_path):
 
     return bilateral_filt_dil_ero_ero
 
-    # The first parameter is the original image,
-    # kernel is the matrix with which image is
-    # convolved and third parameter is the number
-    # of iterations, which will determine how much
-    # you want to erode/dilate a given image.
-
-    # Step 2: Apply the Laplacian filter to detect edges
     # laplacian = cv2.Laplacian(img_median, cv2.CV_64F)
-
-    # Step 3: Convert the result to uint8 (image format)
     # laplacian_abs = cv2.convertScaleAbs(laplacian)
-
     # dst = cv2.Laplacian(img, CV_16S, ksize=kernel_size)
 
-def make_columns_uniform(image):
-    height, width = image.shape
-    num_parts = 10
-    part_height = height // num_parts
-    
-    for x in range(width):
-        part_most_common = []
-
-        for part in range(num_parts):
-            start_idx = part * part_height
-            end_idx = (part + 1) * part_height if part != num_parts - 1 else height
-            part_pixels = image[start_idx:end_idx, x]
-
-            # Find  most common pixel value in the part
-            unique, counts = np.unique(part_pixels, return_counts=True)
-            
-            for idx, item in enumerate(unique):
-                if item >= 128:
-                    unique[idx] = 255
-                else:
-                    unique[idx] = 0
-            
-            mode_pixel = unique[np.argmax(counts)]
-            part_most_common.append(mode_pixel)
-        
-        # Determine the most common value among the parts
-        final_unique, final_counts = np.unique(part_most_common, return_counts=True)
-        most_common_pixel = final_unique[np.argmax(final_counts)]
-
-        # Set all pixels in the column to the most common value
-        image[:, x] = most_common_pixel
-        
-            
-        # # Get the pixels in the current column
-        # column_pixels = image[:, x]
-        # cnt = [0,0]
-        # # Find the most common pixel value in the column
-        # unique, counts = np.unique(column_pixels, return_counts=True)
-        # # mode_pixel = unique[np.argmax(counts)]
-
-        # for idx, item in enumerate(unique):
-        #     if(item >= 128):
-        #         unique[idx] = 255
-        #         cnt[0]+=1
-        #     else:
-        #         unique[idx] = 0
-        #         cnt[1]+=1
-
-        # print(unique)
-        # print(unique[np.argmax(counts)])
-        # # Set all pixels in the column to the most common value
-        # image[:, x] = 0 if cnt[1] > cnt[0] else 255
-    
-
-    return image
-
-# This function reorder the corners points appropriatly
-# Helped significantly with warp function
-def reorder(myPoints):
-    myPoints = myPoints.reshape((4, 2))
-    myPointsNew = np.zeros((4, 1, 2), dtype=np.int32)
-    add = myPoints.sum(1)
-    myPointsNew[1] = myPoints[np.argmin(add)]
-    myPointsNew[3] = myPoints[np.argmax(add)]
-    diff = np.diff(myPoints, axis=1)
-    myPointsNew[0] = myPoints[np.argmin(diff)]
-    myPointsNew[2] = myPoints[np.argmax(diff)]
-    return myPointsNew
-
-def detect_barcode(image):   
-    
-    # 1---->canny
-
-    # blurred = cv2.GaussianBlur(image, (9, 9), 0)
-    # edges = cv2.Canny(image, 50, 150)  
-    # blurred = cv2.blur(edges, (9, 9))
-    # _, thresh = cv2.threshold(blurred, 50, 255, cv2.THRESH_BINARY)
-
-    #2---->blur before sobel
-    blurred = cv2.GaussianBlur(image, (5, 5),0)
-    # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
-    gradX = cv2.Sobel(blurred, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
-    gradY = cv2.Sobel(blurred, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
-    
-    #3---->sobel bas
-
-    # # compute the Scharr gradient magnitude representation of the images in both the x and y direction 
-    # gradX = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
-    # gradY = cv2.Sobel(image, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
-
-    # gradient 2, 3 only
-
-    # subtract the y-gradient from the x-gradient
-    gradient = cv2.subtract(gradX, gradY) 
-    gradient = cv2.convertScaleAbs(gradient)
-    # blur and threshold the image 
-    blurred = cv2.blur(gradient, (9, 9))
-    (_, thresh) = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
-    cv2.imshow("thresholded",thresh)
-
-
-    # construct a closing kernel and apply it to the thresholded image
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
-    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-
-    # perform a series of erosions and dilations
-    # cv2.imshow('closed1', closed)
-    closed = cv2.erode(closed, None, iterations = 4)
-
-    closed = cv2.dilate(closed, None, iterations = 4)
-
-    # find the contours in the thresholded image,
-    #  then sort the contours by their area,
-    #  keeping only the largest one
-    (cnts, _) = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    cnt = sorted(cnts, key = cv2.contourArea, reverse = True)[0] 
-    
-    if cv2.contourArea(cnt) > 0:  # Check if contour is valid
-
-        # compute the rotated bounding box of the largest contour
-        rect = cv2.minAreaRect(cnt)
-        box = np.int32(cv2.boxPoints(rect))
-        box = reorder(box)
-        
-       
-        # Coordinates of each corner
-        ax = box.item(0)
-        ay = box.item(1)
-
-        bx = box.item(2)
-        by = box.item(3)
-
-        cx = box.item(4)
-        cy = box.item(5)
-
-        dx = box.item(6)
-        dy = box.item(7)
-
-        # box coordinates
-        x, y, w, h = cv2.boundingRect(box) 
-        
-        # print(box)
-        border_threshold = 10
-        # height, width = image.shape[:2]
-        widthA = np.sqrt(((cx - dx) ** 2) + ((cy - dy) ** 2))
-        widthB = np.sqrt(((ax - bx) ** 2) + ((ay - by) ** 2))
-        width = max(int(widthA), int(widthB))
-        
-        heightA = np.sqrt(((ax - dx) ** 2) + ((ay - dy) ** 2))
-        heightB = np.sqrt(((bx - cx) ** 2) + ((by - cy) ** 2))
-        height = max(int(heightA), int(heightB))
-        
-        # print(width, height)
-        # print (x, y, w, h)
-        # print(ax, ay, bx, by, cx, cy, dx, dy)
-        # if x < border_threshold:
-        #     x = 0
-        # if x + w > width - border_threshold:
-        #     w = width - x
-        # if y < border_threshold:
-        #     y = 0
-        # if y + h > height - border_threshold:
-        #     h = height - y
-
-        # Draw the extended bounding box
-        # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
-
-        # Crop the barcode 
-        # cropped_barcode = image[y:y+height, x:x+width] 
-
-        
-        pts1 = np.float32([[bx, by], [ax, ay], [cx, cy], [dx, dy]])
-        pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
-        
-        matrix = cv2.getPerspectiveTransform(pts1, pts2)
-        img_prespective = cv2.warpPerspective(image, matrix, (width, height))
-        # cv2.circle(image, (ax,ay), 5, (0,0,255), 20)
-        # cv2.circle(image, (bx,by), 1, (0,0,255), 10)
-        # cv2.circle(image, (cx,cy), 1, (0,0,255), 10)
-        # cv2.circle(image, (dx,dy), 1, (0,0,255), 10)
-        
-        # draw a bounding box arounded the detected barcode and display the image
-        # cv2.drawContours(image, [box], -1, (0, 255, 0), 3) 
-
-
-        # cv2.imshow('Gradient', gradient)
-        # cv2.imshow('Blurred', blurred)
-        # cv2.imshow('closed2', closed) 
-        # cv2.imshow("Image", image) 
-        # cv2.imshow('Cropped Barcode', cropped_barcode) 
-        cv2.imshow("Warp", img_prespective) 
-        cv2.imshow("Original", image)
-        uniform_image = make_columns_uniform(img_prespective)
-        cv2.imshow("Uniform Image", uniform_image)
-        cv2.imwrite("UniformImage.jpg", uniform_image)
-        decoded_digits = Decoder.decode_barcode()
-        print(decoded_digits)
-        cv2.waitKey(0)
 
 def sharpen_image(image):
     # Define the sharpening kernel
@@ -538,10 +305,6 @@ def sharpen_image(image):
     return sharpened
 
 def enhance_barcode(image):
-    # Step 1: Load the image (grayscale) after noise removal
-    # image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-
-    # Step 2: Sharpen the image to improve clarity
     sharpened_image = sharpen_image(image)
 
     return sharpened_image
@@ -603,115 +366,90 @@ def applydynamic_threshold(image, avg_intensity):
     _, thresholded_image = cv2.threshold(image, threshold_value, 255, cv2.THRESH_BINARY)
     return thresholded_image
 
+def preprocessing(img , image_path):
 
-# --------------------------------------------MAIN--------------------------------
-# Uncomment the needed Test Case
-# image_path ="Test Cases\\01 - lol easy.jpg" #Done
-# image_path ="Test Cases\\02 - still easy.jpg" #Done
-# image_path ="Test Cases\\03 - eda ya3am ew3a soba3ak mathazarsh.jpg" #Done
-image_path ="Test Cases\\04 - fen el nadara.jpg" #Decoder Can't detect the barcode
-# image_path ="Test Cases\\05 - meen taffa el nour!!!.jpg" #Decoder Can't detect the barcode
-# image_path ="Test Cases\\06 - meen fata7 el nour 333eenaaayy.jpg" #Decoder Can't detect the barcode
-# image_path ="Test Cases\\07 - mal7 w felfel.jpg" #Decoder Can't detect the barcode
-# image_path ="Test Cases\\08 - compresso espresso.jpg" #Decoder Can't detect the barcode
-# image_path ="Test Cases\\09 - e3del el soora ya3ammm.jpg" #Decoder Can't detect the barcode
-# image_path ="Test Cases\\10 - wen el kontraastttt.jpg" #Decoder Can't detect the barcode
-# image_path = "Test Cases\\11 - bayza 5ales di bsara7a.jpg" #Decoder Can't detect the barcode
-img = cv2.imread(image_path, 0)
-
-
-avg_intensity =calc_avg_intensity(img)
-# thresholded_image = apply_dynamic_threshold(img,avg_intensity)
-thresh = applydynamic_threshold(img,avg_intensity)
-is_salt_pepper =detect_salt_and_pepper_noise(thresh)
-
-# if is_salt_pepper:
-#     is_salt_pepper= detect_salt_and_pepper_noise(img)
-# print("salmaaa")
-print(img.shape)
-print(is_salt_pepper)
-if is_salt_pepper:
-    # is_salt_pepper =detect_salt_and_pepper_noise(is_salt_pepper)
-    intensities =plot_time_domain(image_path,300,300)
-    print(is_salt_pepper)
-    # Call the function
-    results = analyze_peaks(intensities, height=150, distance=50, tolerance=5)
-    are_peaks_equally_spaced = are_peaks_equally_spaced(intensities,height = 150)
-    # Output results
-    print("Peak indices:", results['peaks'])
-    print("Peak distances:", results['peak_distances'])
-    print("Are distances approximately equal?", results['are_distances_equal'])
-    
-    
-    if are_peaks_equally_spaced:
-        avg_int2 = calc_avg_intensity(img)
-        dft_img = np.fft.fft2(img)
-        dft_img_shift = np.fft.fftshift(dft_img)
-        if results['filter_type'] == "High-pass":    
-            freqimg = try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
-            # If try_highpass produces complex numbers, extract magnitude
-            freqimg = np.abs(freqimg)
-            # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
-            freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))  # Normalize to 0-255
-            # If needed, ensure single-channel image
-            if len(freqimg.shape) > 2:
-                freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
-            contrast =increase_contrast(freqimg)
-            detect_barcode(contrast)
-            cv2.imshow("Frequency Domain", freqimg)
-
-        elif results['filter_type'] == "Low-pass":
-            freqimg = try_lowpass(dft_img, 150, gaussian=True)
-            # If try_highpass produces complex numbers, extract magnitude
-            freqimg = np.abs(freqimg)
-            # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
-            # Normalize to 0-255
-            freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))
-            # If needed, ensure single-channel image
-            if len(freqimg.shape) > 2:
-                freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
-            contrast = increase_contrast(freqimg)
-            detect_barcode(contrast)
-            cv2.imshow("Frequency Domain", freqimg)
-    else:
-        avg_intensity =calc_avg_intensity(img)
-        thresholded_image = apply_dynamic_threshold(img,avg_intensity)
-        cv2.imshow("Thresholded Image", thresholded_image)
-        kernel = np.ones((3, 3), np.uint8)
-        dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
-        erode_img = cv2.erode(dil_img, kernel, iterations=1)
-        
-        cv2.imshow("Dilated Image", erode_img)
-        detect_barcode(erode_img)
-else:
-    print("No Salt and Pepper Noise")
-    
     avg_intensity =calc_avg_intensity(img)
-    brightness_threshold = 250 
-    
-    if avg_intensity < brightness_threshold:
-        thresholded_image = apply_dynamic_threshold(img,avg_intensity)
-        cv2.imshow("Thresholded Image", thresholded_image)
-        kernel = np.ones((3, 3), np.uint8)
-        dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
-        erode_img = cv2.erode(dil_img, kernel, iterations=1)
-        result =increase_contrast(erode_img)
-    else: 
-        result =increase_contrast(img)
-    detect_barcode(result)
-    
+    thresh = applydynamic_threshold(img,avg_intensity)
+    is_salt_pepper =detect_salt_and_pepper_noise(thresh)
 
-
+    print(img.shape)
+    print(is_salt_pepper)
+    if is_salt_pepper:
+        intensities =plot_time_domain(image_path,300,300)
+        print(is_salt_pepper)
+        # Call the function
+        results = analyze_peaks(intensities, height=150, distance=50, tolerance=5)
+        peaks_equally_spaced = are_peaks_equally_spaced(intensities,height = 150)
+        # Output results
+        print("Peak indices:", results['peaks'])
+        print("Peak distances:", results['peak_distances'])
+        print("Are distances approximately equal?", results['are_distances_equal'])
         
+        
+        if peaks_equally_spaced:
+            # avg_int2 = calc_avg_intensity(img)
+            dft_img = np.fft.fft2(img)
+            # dft_img_shift = np.fft.fftshift(dft_img)
+            if results['filter_type'] == "High-pass":    
+                freqimg = try_highpass(dft_img, 20, gaussian=False, keep_dc=True)
+                # If try_highpass produces complex numbers, extract magnitude
+                freqimg = np.abs(freqimg)
+                # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
+                freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))  # Normalize to 0-255
+                # If needed, ensure single-channel image
+                if len(freqimg.shape) > 2:
+                    freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
+                contrast =increase_contrast(freqimg)
+                BarCodeExtraction.detect_barcode(contrast)
+                cv2.imshow("Frequency Domain", freqimg)
 
-# else :
+            elif results['filter_type'] == "Low-pass":
+                freqimg = try_lowpass(dft_img, 150, gaussian=True)
+                # If try_highpass produces complex numbers, extract magnitude
+                freqimg = np.abs(freqimg)
+                # Ensure the image is in a uint8 format (0-255) for OpenCV compatibility
+                # Normalize to 0-255
+                freqimg = np.uint8(255 * (freqimg / np.max(freqimg)))
+                # If needed, ensure single-channel image
+                if len(freqimg.shape) > 2:
+                    freqimg = cv2.cvtColor(freqimg, cv2.COLOR_BGR2GRAY)
+                contrast = increase_contrast(freqimg)
+                BarCodeExtraction.detect_barcode(contrast)
+                cv2.imshow("Frequency Domain", freqimg)
+        else:
+            avg_intensity =calc_avg_intensity(img)
+            thresholded_image = apply_dynamic_threshold(img,avg_intensity)
+            # cv2.imshow("Thresholded Image", thresholded_image)
+            kernel = np.ones((3, 3), np.uint8)
+            dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
+            erode_img = cv2.erode(dil_img, kernel, iterations=1)
+            
+            # cv2.imshow("Dilated Image", erode_img)
+            BarCodeExtraction.detect_barcode(erode_img)
+    else:
+        print("No Salt and Pepper Noise")
+        
+        avg_intensity =calc_avg_intensity(img)
+        brightness_threshold = 250 
+        
+        if avg_intensity < brightness_threshold:
+            thresholded_image = apply_dynamic_threshold(img,avg_intensity)
+            # cv2.imshow("Thresholded Image", thresholded_image)
+            kernel = np.ones((3, 3), np.uint8)
+            dil_img = cv2.dilate(thresholded_image, kernel, iterations=1)
+            erode_img = cv2.erode(dil_img, kernel, iterations=1)
+            result =increase_contrast(erode_img)
+            BarCodeExtraction.detect_barcode(result)
+        else: 
+            result =increase_contrast(img)
+            BarCodeExtraction.detect_barcode(result)
+    
 
 
 
 
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+
 
 
 
