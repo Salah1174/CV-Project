@@ -178,7 +178,10 @@ def detect_barcode(image):
         pixels , ignore= remove_initial_whites(pixels)
         image_modified = img[ignore:, ignore:]
         cv2.imwrite("FinalImage.jpg", image_modified)
+        
+        #show image
         cv2.imshow("Final Image", image_modified)
+        
         decoded_digits = Decoder.decode_barcode()
         print(decoded_digits)
         cv2.waitKey(0)
